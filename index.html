@@ -136,7 +136,9 @@
     .filter-bar label { font-weight: 600; font-size: 0.92rem; }
     .filter-bar select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line);
       border-radius: 6px; background: var(--bg); color: var(--fg); }
-    .sheet-wrap { overflow: auto; border: 1px solid var(--line); border-top: none; border-radius: 0 0 8px 8px; }
+    /* Shrink the bordered box to the table so it's left-aligned and compact, not full-width. */
+    .sheet-wrap { overflow: auto; border: 1px solid var(--line); border-top: none; border-radius: 0 0 8px 8px;
+      width: fit-content; max-width: 100%; }
     /* Sticky first column keeps the key in view while scrolling wide sheets. */
     .sheet-wrap th:first-child, .sheet-wrap td:first-child { position: sticky; left: 0; background: var(--bg); z-index: 1; }
     .sheet-wrap thead th:first-child { background: var(--surface); z-index: 4; }
@@ -144,7 +146,9 @@
     .sheet-wrap tr.badrow td:first-child { background: var(--err-bg); }
     /* Auto width so columns hug their content instead of stretching across the page. */
     table { border-collapse: collapse; width: auto; font-size: 0.92rem; }
-    th, td { text-align: left; padding: 0.4rem 0.85rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th, td { text-align: left; padding: 0.4rem 0.85rem; border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line); white-space: nowrap; }
+    th:last-child, td:last-child { border-right: none; }
     th { background: var(--surface); position: sticky; top: 0; z-index: 3; font-weight: 700;
       color: var(--brand-dark); border-bottom: 2px solid var(--line); }
     tbody tr:hover td { background: var(--surface); }
@@ -165,15 +169,15 @@
 
     /* --- Inline editor --- */
     .sheet-tools { display: flex; gap: 0.6rem; align-items: center; padding: 0.6rem 0; }
-    td.cell-edit { padding: 0; }
+    td.cell-edit { padding: 0 0.4rem; }   /* horizontal gap so controls don't touch the next column */
     input.cell {
-      width: 100%; min-width: 7rem; font: inherit; font-size: 0.92rem; border: 0;
-      background: transparent; color: var(--fg); padding: 0.5rem 0.7rem;
+      width: 100%; min-width: 5rem; font: inherit; font-size: 0.92rem; border: 0;
+      background: transparent; color: var(--fg); padding: 0.5rem 0.35rem;
     }
     input.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     select.cell {
-      width: 100%; min-width: 9rem; font: inherit; font-size: 0.92rem; border: 0;
-      background: transparent; color: var(--fg); padding: 0.45rem 0.6rem; cursor: pointer;
+      width: 100%; min-width: 6rem; font: inherit; font-size: 0.92rem; border: 0;
+      background: transparent; color: var(--fg); padding: 0.45rem 0.3rem; cursor: pointer;
     }
     select.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     /* Y/N toggle switch */
@@ -434,7 +438,7 @@
     Students: { key: 'StudentID', essential: ['StudentID'],
       required: ['StudentID', 'Name', 'Gender', 'Imi', 'Resident', 'LCMentorID', 'ScheduleTag', 'Cohort'] },
     Tutors:   { key: 'TutorID', essential: ['TutorID'],
-      required: ['TutorID', 'Name', 'Availability', 'MaxStudents', 'CoTutorOK'] },
+      required: ['TutorID', 'Name', 'Units', 'Availability', 'MaxStudents', 'CoTutorOK'] },
     Conflicts:{ key: null, essential: ['TypeA_ID', 'TypeB_ID', 'Kind'],
       required: ['TypeA_ID', 'TypeB_ID', 'Kind', 'Reason'] },
     Groups:   { key: null, essential: ['Unit', 'GroupID'],
@@ -479,7 +483,7 @@
     StudentID: 'Student ID', TutorID: 'Tutor ID', Name: 'Name', Gender: 'Gender',
     Imi: 'Imi Hoʻōla', Resident: 'Hawaiʻi Resident', LCMentorID: 'LC Mentor',
     ScheduleTag: 'Schedule', Availability: 'Availability', MaxStudents: 'Max Students',
-    CoTutorOK: 'Co-Tutor OK', TypeA_ID: 'Person A', TypeB_ID: 'Person B',
+    CoTutorOK: 'Co-Tutor OK', Units: 'Units', TypeA_ID: 'Person A', TypeB_ID: 'Person B',
     Kind: 'Conflict Type', Reason: 'Reason', Unit: 'Unit', GroupID: 'Group',
     TimeSlot: 'Time Slot', TutorIDs: 'Tutor(s)', Cohort: 'Class Year',
   };
@@ -489,6 +493,8 @@
 
   const sheetLabel = (s) => SHEET_LABELS[s] || s;
   const colLabel = (c) => COLUMN_LABELS[c] || c;
+  // Friendly group name for display only (data keeps the canonical GroupID like "G1").
+  const groupLabel = (gid) => { const m = /^G\s*0*(\d+)$/i.exec(norm(gid)); return m ? `Group ${m[1]}` : norm(gid); };
   const genderLabel = (g) => GENDER_LABELS[up(g)] || norm(g);
   function tagLabel(tag) {
     const t = norm(tag);
@@ -562,9 +568,9 @@
       { StudentID:'KL06', Name:'Otto Immune',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T03', ScheduleTag:'ImiGA',           Cohort:'2028' },
     ],
     Tutors: [
-      { TutorID:'T01', Name:'Dr. Cara Diak',     Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
-      { TutorID:'T02', Name:'Dr. Anne Esthesia', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
-      { TutorID:'T03', Name:'Dr. Hugh Morr',     Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
+      { TutorID:'T01', Name:'Dr. Cara Diak',     Units:'MD1', Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
+      { TutorID:'T02', Name:'Dr. Anne Esthesia', Units:'MD1', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
+      { TutorID:'T03', Name:'Dr. Hugh Morr',     Units:'MD1', Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
     ],
     Conflicts: [
       { TypeA_ID:'AB01', TypeB_ID:'CD02', Kind:'student-student', Reason:'prior issue' },
@@ -597,7 +603,7 @@
     const Tutors = [];
     for (let t = 1; t <= G; t++)
       Tutors.push({ TutorID: tid(t), Name: `Dr. ${firsts[(t * 3) % firsts.length]} ${lasts[(t * 5) % lasts.length]}`,
-                    Availability: t % 2 ? 'AM' : 'PM', MaxStudents: 6, CoTutorOK: t % 3 ? 'Y' : 'N' });
+                    Units: 'MD2', Availability: t % 2 ? 'AM' : 'PM', MaxStudents: 6, CoTutorOK: t % 3 ? 'Y' : 'N' });
     // This unit's slots (MD2): groups alternate AM/PM, tutor g covers group g.
     const Groups = [];
     for (let g = 1; g <= G; g++)
@@ -758,6 +764,7 @@
     });
 
     // Tutors
+    const tutorUnits = new Map();   // tutorId -> Set of units they cover (for the Groups cross-check)
     tutors.forEach((r, i) => {
       const id = norm(r.TutorID);
       const loc = `Tutors row ${i + 2}`;
@@ -767,6 +774,10 @@
       const max = norm(r.MaxStudents);
       if (max && isNaN(Number(max))) err(loc, `MaxStudents must be a number (got "${max}")`, 'Tutors', i);
       if (!YN.has(up(r.CoTutorOK))) warn(loc, `CoTutorOK should be Y/N (got "${norm(r.CoTutorOK)}")`);
+      const units = splitIds(r.Units).map(u => u.toUpperCase());
+      if (id) tutorUnits.set(id, new Set(units));
+      const badUnits = units.filter(u => !UNITS.includes(u));
+      if (badUnits.length) warn(loc, `Units has unknown unit(s): ${badUnits.join(', ')} (use MD1–MD7)`);
     });
 
     // Cross-refs: LC mentor must be a known tutor
@@ -802,7 +813,11 @@
       if (!norm(r.GroupID)) err(loc, 'blank GroupID', 'Groups', i);
       const tids = splitIds(r.TutorIDs);
       if (!tids.length) warn(loc, 'no TutorIDs listed');
-      tids.forEach(t => { if (!tutorIds.has(t)) err(loc, `TutorID "${t}" is not in the Tutors sheet`, 'Groups', i); });
+      tids.forEach(t => {
+        if (!tutorIds.has(t)) { err(loc, `TutorID "${t}" is not in the Tutors sheet`, 'Groups', i); return; }
+        const tu = tutorUnits.get(t);   // advisory: tutor assigned to a unit they don't list
+        if (tu && tu.size && !tu.has(unit.toUpperCase())) warn(loc, `tutor ${t} isn't listed for ${unit} (check their Units)`);
+      });
     });
 
     // PBLHistory (referential integrity; missing refs are warnings, not blockers)
@@ -926,6 +941,8 @@
           `<option value="${CUSTOM_TAG}">Custom…</option>`;
         return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
       }
+      if (c === 'Units')   // a list of units this tutor covers, e.g. "MD2; MD3"
+        return `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(v)}" placeholder="MD2; MD3"></td>`;
       const fk = (FIELD_KINDS[sheet] || {})[c];
       if (fk && fk.enum) return pickCell(i, c, enumOptions(fk.enum, v));
       if (fk && fk.ref)  return pickCell(i, c, refOptions(fk.ref, v));
@@ -1396,7 +1413,7 @@
       const tnames = g.tutors.map(t => tutors.get(t) || t).join(', ') || '—';
       // Keyboard/touch alternative to dragging: a "Move to…" select listing the other groups.
       const moveOpts = res.groups.map((gg, j) => j === gi ? '' :
-        `<option value="${j}">${escapeHtml(gg.GroupID)}</option>`).join('');
+        `<option value="${j}">${escapeHtml(groupLabel(gg.GroupID))}</option>`).join('');
       const chips = g.students.map(sid => {
         const s = students.get(sid) || {};
         const tags = [up(s.Imi) === 'Y' ? 'Imi Hoʻōla' : '', up(s.Resident) === 'N' ? 'Non-resident' : '',
@@ -1412,7 +1429,7 @@
       }).join('') || `<div class="hint" style="margin:0">drop students here</div>`;
       const over = g.students.length > g.capacity;
       return `<div class="gcol${over ? ' over' : ''}" data-gi="${gi}"><div class="ghead">` +
-        `<div class="gid">${escapeHtml(g.GroupID)}</div>` +
+        `<div class="gid">${escapeHtml(groupLabel(g.GroupID))}</div>` +
         `<div class="gmeta">${escapeHtml(g.TimeSlot || '—')} · seats ${g.capacity}</div>` +
         `<div class="gtutors">${escapeHtml(tnames)}</div></div>` +
         `<div class="gbody" data-gi="${gi}">${chips}</div><div class="gcount">${g.students.length} / ${g.capacity}</div></div>`;
@@ -1508,7 +1525,7 @@
                       norm(s.ScheduleTag) ? tagLabel(s.ScheduleTag) : ''].filter(Boolean).join(' · ');
         return `<li>${escapeHtml(norm(s.Name) || sid)}${tags ? ` <span class="rtags">— ${escapeHtml(tags)}</span>` : ''}</li>`;
       }).join('');
-      return `<section class="rgroup"><h2>${escapeHtml(g.GroupID)} · ${escapeHtml(g.TimeSlot || '—')} · ${escapeHtml(tut)}` +
+      return `<section class="rgroup"><h2>${escapeHtml(groupLabel(g.GroupID))} · ${escapeHtml(g.TimeSlot || '—')} · ${escapeHtml(tut)}` +
              ` <span class="rcount">(${g.students.length})</span></h2><ol>${lis}</ol></section>`;
     }).join('');
     $('printRoster').innerHTML = `<h1>PBL Groups — ${escapeHtml(lastResult.unit)}</h1>${groups}`;
