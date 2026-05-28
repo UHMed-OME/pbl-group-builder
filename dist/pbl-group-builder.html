@@ -39,6 +39,25 @@
     .masthead { min-width: 0; }
     h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.01em; font-weight: 700; color: var(--brand-dark); }
     .tag { color: var(--muted); margin: 0.15rem 0 0; font-size: 0.9rem; }
+    /* Icon transport bar (header, right side) */
+    .transport { margin-left: auto; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+    .iconbtn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.15rem; padding: 0; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+      border-radius: 8px; cursor: pointer; line-height: 1; }
+    .iconbtn:hover { background: var(--accent-bg); }
+    .iconbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .iconbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .iconbtn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .tsep { width: 1px; height: 26px; background: var(--line); margin: 0 0.15rem; }
+    /* Top-level app tabs */
+    .apptabs { display: flex; align-items: center; gap: 0.3rem; padding: 0 1.5rem;
+      background: var(--surface); border-bottom: 1px solid var(--line); }
+    .apptab { border: none; background: transparent; padding: 0.75rem 1.15rem; font: inherit;
+      font-size: 1rem; font-weight: 600; color: var(--muted); cursor: pointer;
+      border-bottom: 3px solid transparent; }
+    .apptab:hover { color: var(--fg); }
+    .apptab.active { color: var(--brand-dark); border-bottom-color: var(--brand); }
+    .apptabs #loadedName { margin-left: auto; }
     main { padding: 1.25rem 1.5rem 4rem; max-width: 1240px; margin: 0 auto; }
     .toolbar {
       display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;
@@ -202,77 +221,83 @@
       <h1>PBL Group Builder</h1>
       <p class="tag">JABSOM Problem-Based Learning group assignment &mdash; MD1&ndash;MD7</p>
     </div>
-  </header>
-  <main>
-    <div class="note">
-      <strong>Offline &amp; FERPA-safe.</strong> Everything runs in this browser tab. Your workbook is
-      read locally, processed in memory, and written back to your Downloads folder. No data is uploaded.
-    </div>
-
-    <div class="toolbar">
-      <button id="btnExample">✨ Load example data</button>
-      <button id="btnTemplate">⬇ Download blank template</button>
-      <label class="filebtn">
-        📂 Load workbook (.xlsx / .csv)
+    <div class="transport" role="toolbar" aria-label="Actions">
+      <button id="btnExample" class="iconbtn" title="Load example data" aria-label="Load example data">✨</button>
+      <label class="iconbtn" title="Open workbook (.xlsx / .csv)" aria-label="Open workbook">📂
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
       </label>
-      <button id="btnPaste">📋 Paste rows</button>
-      <button id="btnUndo" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
-      <button id="btnRedo" disabled title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
-      <button id="btnExport" class="primary" disabled>⬆ Export workbook (round-trip)</button>
-      <span id="loadedName" class="tag"></span>
+      <button id="btnPaste" class="iconbtn" title="Paste rows from Excel / Google Sheets" aria-label="Paste rows">📋</button>
+      <button id="btnTemplate" class="iconbtn" title="Download blank template" aria-label="Download blank template">⬇</button>
+      <span class="tsep" aria-hidden="true"></span>
+      <button id="btnUndo" class="iconbtn" disabled title="Undo (Ctrl+Z)" aria-label="Undo">↶</button>
+      <button id="btnRedo" class="iconbtn" disabled title="Redo (Ctrl+Shift+Z)" aria-label="Redo">↷</button>
+      <span class="tsep" aria-hidden="true"></span>
+      <button id="btnExport" class="iconbtn primary" disabled title="Export workbook (.xlsx)" aria-label="Export workbook">⬆</button>
     </div>
+  </header>
 
-    <div id="pastePanel" class="hidden">
-      <p class="hint">Copy rows from Excel or Google Sheets (include the header row) and paste below.
-        One sheet at a time — the matching sheet is detected from the column headers.</p>
-      <textarea id="pasteText" placeholder="StudentID&#9;Name&#9;Gender&#9;Imi&#9;Resident&#9;LCMentorID&#9;ScheduleTag&#10;AB01&#9;Anna Tomy&#9;F&#9;N&#9;Y&#9;T01&#9;"></textarea>
-      <div class="prow">
-        <button id="btnPasteLoad" class="primary">Load pasted rows</button>
-        <button id="btnPasteCancel">Cancel</button>
-        <span id="pasteMsg" class="hint" style="margin:0"></span>
+  <nav class="apptabs" id="appTabs" role="tablist" aria-label="Views">
+    <button class="apptab active" data-view="roster" role="tab" aria-selected="true">Roster &amp; data</button>
+    <button class="apptab" data-view="groups" role="tab" aria-selected="false">Groups</button>
+    <span id="loadedName" class="tag"></span>
+  </nav>
+
+  <main>
+    <p class="note">
+      <strong>Offline &amp; FERPA-safe.</strong> Everything runs in this browser tab — your workbook is
+      read locally and written back to Downloads. No data is uploaded.
+    </p>
+
+    <section id="view-roster" class="view" role="tabpanel">
+      <div id="pastePanel" class="hidden">
+        <p class="hint">Copy rows from Excel or Google Sheets (include the header row) and paste below.
+          One sheet at a time — the matching sheet is detected from the column headers.</p>
+        <textarea id="pasteText" placeholder="StudentID&#9;Name&#9;Gender&#9;Imi&#9;Resident&#9;LCMentorID&#9;ScheduleTag&#10;AB01&#9;Anna Tomy&#9;F&#9;N&#9;Y&#9;T01&#9;"></textarea>
+        <div class="prow">
+          <button id="btnPasteLoad" class="primary">Load pasted rows</button>
+          <button id="btnPasteCancel">Cancel</button>
+          <span id="pasteMsg" class="hint" style="margin:0"></span>
+        </div>
       </div>
-    </div>
 
-    <div id="validation" class="hidden">
-      <div class="vsummary" id="vsummary"></div>
-      <div id="issues"></div>
-    </div>
-
-    <h2 class="section" id="dataHeading" hidden>Roster data</h2>
-    <p class="section-sub" id="dataSub" hidden>Review and edit the loaded sheets. Edits re-validate live and feed the solver.</p>
-    <div id="tabs" class="tabs hidden"></div>
-    <div id="sheetView" class="sheet-wrap hidden"></div>
-
-    <section id="solver" class="hidden">
-      <h2 class="section">Build groups</h2>
-      <p class="section-sub">Pick the unit, optionally tune the soft-preference weights, then solve. The board and scorecard appear below.</p>
-      <div class="solvebar">
-        <label>Unit&nbsp; <select id="unitSel"></select></label>
-        <button id="btnSolve" class="primary">▶ Solve groups</button>
-        <details class="weights">
-          <summary>Soft-preference weights</summary>
-          <div class="wgrid" id="weights"></div>
-        </details>
+      <div id="validation" class="hidden">
+        <div class="vsummary" id="vsummary"></div>
+        <div id="issues"></div>
       </div>
-      <div id="scorecard"></div>
-      <div id="boardActions" class="board-actions hidden">
-        <span class="hint" style="margin:0">Drag a student between groups to adjust. A red chip breaks a hard rule (hover for why). Lock 🔒 anyone you want kept in place, then re-solve.</span>
-        <button id="btnResolve">↻ Re-solve (keep locked)</button>
-        <button id="btnUnlockAll">Unlock all</button>
-        <button id="btnPrint">🖨 Print / Save PDF roster</button>
+
+      <div id="tabs" class="tabs hidden"></div>
+      <div id="sheetView" class="sheet-wrap hidden"></div>
+
+      <div id="placeholder" class="empty">
+        Loading example data… or use the toolbar above: ✨ example, 📂 open a workbook, or 📋 paste rows.
       </div>
-      <div id="board"></div>
     </section>
 
-    <!-- Printable roster: hidden on screen, shown only when printing (Save as PDF). -->
-    <div id="printRoster" class="print-only"></div>
-
-    <div id="placeholder" class="empty">
-      Load a workbook or paste rows to begin — or click <strong>Load example data</strong> to
-      start from filled-in sample rows you can edit.
-    </div>
+    <section id="view-groups" class="view" role="tabpanel" hidden>
+      <div id="solver">
+        <p class="section-sub">Pick the unit and Solve. Then drag students between groups to adjust — a red chip breaks a hard rule. Lock anyone and re-solve.</p>
+        <div class="solvebar">
+          <label>Unit&nbsp; <select id="unitSel"></select></label>
+          <button id="btnSolve" class="primary">▶ Solve groups</button>
+          <details class="weights">
+            <summary>Soft-preference weights</summary>
+            <div class="wgrid" id="weights"></div>
+          </details>
+        </div>
+        <div id="scorecard"></div>
+        <div id="boardActions" class="board-actions hidden">
+          <span class="hint" style="margin:0">Drag a student between groups to adjust. A red chip breaks a hard rule (hover for why). Lock 🔒 anyone to keep on re-solve.</span>
+          <button id="btnResolve">↻ Re-solve (keep locked)</button>
+          <button id="btnUnlockAll">Unlock all</button>
+          <button id="btnPrint">🖨 Print / Save PDF roster</button>
+        </div>
+        <div id="board"></div>
+      </div>
+    </section>
   </main>
+
+  <!-- Printable roster: hidden on screen, shown only when printing (Save as PDF). -->
+  <div id="printRoster" class="print-only"></div>
 
   <script>
 /*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
@@ -785,7 +810,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     view.onclick = (e) => {
       if (e.target.id === 'btnAddRow') { addRow(); return; }
       const del = e.target.closest && e.target.closest('button.rowdel');
-      if (del) { workbook[sheet].splice(+del.dataset.del, 1); renderSheet(); refreshValidation(); pushHistory(); }
+      if (del) {
+        const ri = +del.dataset.del;
+        const row = workbook[sheet][ri] || {};
+        const who = norm(row.Name) || (SCHEMA[sheet].key && norm(row[SCHEMA[sheet].key])) || `row ${ri + 2}`;
+        if (!confirm(`Delete ${who} from ${sheetLabel(sheet)}? You can undo this with Ctrl+Z.`)) return;
+        workbook[sheet].splice(ri, 1); renderSheet(); refreshValidation(); pushHistory();
+      }
     };
   }
 
@@ -1284,9 +1315,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     badRows = res.badRows;
     activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
     $('placeholder').classList.add('hidden');
-    const dh = $('dataHeading'), ds = $('dataSub');
-    if (dh) dh.hidden = false;
-    if (ds) ds.hidden = false;
     renderValidation(res);
     renderTabs();
     renderSheet();
@@ -1296,9 +1324,28 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     $('boardActions').classList.add('hidden');
     $('btnExport').disabled = false;
     if (label) $('loadedName').textContent = label;
+    showView('roster');   // loading data brings you to the Roster view
+  }
+
+  // ---- Top-level views (Roster / Groups) ---------------------------------
+  function showView(v) {
+    const tabs = $('appTabs');
+    if (tabs.querySelectorAll) tabs.querySelectorAll('.apptab').forEach(b => {
+      const on = b.dataset.view === v;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $('view-roster').hidden = v !== 'roster';
+    $('view-groups').hidden = v !== 'groups';
   }
 
   // ---- Wiring ------------------------------------------------------------
+  // Top-level tab switching (Roster / Groups).
+  $('appTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest && e.target.closest('.apptab');
+    if (tab) showView(tab.dataset.view);
+  });
+
   // Prefill the editor with the ~80-student demo cohort (freshly generated each time).
   $('btnExample').onclick = () => {
     loadWorkbook(makeExample(), 'Example data (80 students) — edit freely');
@@ -1329,6 +1376,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   // ---- Paste rows (from Excel / Google Sheets) ---------------------------
   $('btnPaste').onclick = () => {
+    showView('roster');
     const p = $('pastePanel'); p.classList.toggle('hidden'); $('pasteMsg').textContent = '';
     if (!p.classList.contains('hidden')) $('pasteText').focus();
   };
