@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-**Phase 1 (data + validation + FERPA-safe round-trip) is implemented.** `PBL_Group_Builder_Spec.md` remains the authoritative source for all architecture and behavior; read it before building further, and treat its open questions (spec §7) as things to confirm with the operator rather than guess. Phases 2–4 (solver, interactive board, export polish) are not built yet.
+**Phase 1 (data + validation + FERPA-safe round-trip) is implemented**, plus three additions: (a) **paste import** — `parsePasted()` ingests tab-delimited rows from Excel/Google Sheets (or CSV text), matching the target sheet by headers like the `.csv` path; (b) a **simple inline editor** — the sheet view renders editable text cells, Y/N **toggle switches** for `BOOL_COLS` (`Imi`/`Resident`/`CoTutorOK`), and add/delete-row, writing straight back into the in-memory `workbook` and re-validating live; (c) a **JABSOM/UH Mānoa theme** (deep-green `--brand` masthead, green accents, gold trim). `PBL_Group_Builder_Spec.md` remains the authoritative source for all architecture and behavior; read it before building further, and treat its open questions (spec §7) as things to confirm with the operator rather than guess. The full solver (Phase 2), drag-drop board + soft-weight sliders (Phase 3), and export polish/PDF (Phase 4) are not built yet.
 
 ## Layout
 
 - `index.html` — the app. Loads `vendor/xlsx.full.min.js` via a relative `<script src>`. This is what GitHub Pages serves.
 - `vendor/xlsx.full.min.js` — vendored SheetJS (Apache-2.0), committed. Never load SheetJS from a CDN.
 - `build.mjs` — `node build.mjs` inlines SheetJS into `dist/pbl-group-builder.html`, the **single self-contained, emailable** file the spec mandates (spec §1). `dist/` is the distribution artifact.
-- `tests/core.test.mjs` — `node tests/core.test.mjs` runs the pure data logic (validation, build, round-trip) headlessly by extracting the app `<script>` from `index.html` and stubbing the DOM. No browser/deps needed.
+- `tests/core.test.mjs` — `node tests/core.test.mjs` runs the pure data logic (validation, build, round-trip, paste parsing) headlessly by extracting the app `<script>` from `index.html` and stubbing the DOM. No browser/deps needed. It regex-matches the script block as **the last `<script>` before `</body>` with no `src` attr**, then *appends its own* `globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, TEMPLATE, SCHEMA, SHEET_ORDER }` line referencing those top-level names. So: keep the app script last before `</body>`, and if you rename any of those functions/consts in `index.html`, update the export line in the test or it silently fails to load them. The app's load-time DOM wiring (`$('btn…').onclick = …`) runs against the test's Proxy stubs, so keep wiring tolerant of stubbed elements.
 - `.nojekyll` — so Pages serves `vendor/` (Jekyll would skip it).
 
 ### Deviation from spec
@@ -32,7 +32,7 @@ A tool for JABSOM (medical school) Problem-Based Learning group assignment. The 
 
 - **Single self-contained `.html` file, runs 100% in-browser, fully offline.** The operator double-clicks it; it opens in Chrome/Edge/Safari. No server, no build step, no install, no network calls. Distribution is just emailing the file.
 - **FERPA: student data must never leave the machine.** No fetch/XHR/CDN/telemetry at runtime. Any libraries (e.g. SheetJS) must be inlined into the HTML, not loaded from a CDN. This rules out a backend, hosted web app, or any cloud dependency.
-- **The operator's workbook is the database.** There is no other persistence. The tool reads the master `.xlsx`/`.csv`, solves the current unit, and writes results + appended history back into a downloaded workbook that becomes the master for the next unit. Use SheetJS (inlined) for parsing/writing; support both `.xlsx` and `.csv`.
+- **The operator's workbook is the database.** There is no other persistence. The tool reads the master `.xlsx`/`.csv`, solves the current unit, and writes results + appended history back into a downloaded workbook that becomes the master for the next unit. Use SheetJS (inlined) for parsing/writing; support both `.xlsx` and `.csv`. **CSV is asymmetric by design:** a loaded `.csv` is a single table, so only one sheet is ingested (matched to a schema sheet by its headers); export always writes the full multi-sheet `.xlsx` (`PBL_template.xlsx` / `PBL_export.xlsx`). The real round-trip is `.xlsx`; `.csv` load is a convenience for single-sheet edits.
 
 ## Workbook schema (the data contract)
 
@@ -40,7 +40,7 @@ Sheets and key columns — see spec §2 for full column lists:
 - **`Students`** — `StudentID` (stable key used everywhere instead of name), `Name`, `Gender`, `Imi` (Y/N), `Resident` (Y/N), `LCMentorID`, `ScheduleTag`.
 - **`Tutors`** — `TutorID`, `Name`, `Availability`, `MaxStudents` (default 6), `CoTutorOK`.
 - **`Conflicts`** — `TypeA_ID`, `TypeB_ID`, `Kind` (`student-student` | `tutor-student`), `Reason`.
-- **`Groups`** — `Unit`, `GroupID`, `TimeSlot`, `TutorID(s)` — defines this unit's slots.
+- **`Groups`** — `Unit`, `GroupID`, `TimeSlot`, `TutorIDs` — defines this unit's slots. (Spec §2 writes the column as `TutorID(s)`; the literal header in code is `TutorIDs`, and it holds a comma/semicolon/slash-separated list — `splitIds()` parses it for co-tutors.)
 - **`PBLHistory`** (spec calls it `History`; renamed — see Deviation above) — `Unit`, `StudentID`, `GroupID`, `TutorID` — auto-appended after each unit. This sheet **is** the repeat-avoidance engine: "no repeat tutor" scans prior `TutorID`s for a student; "avoid repeat groupmates" scans who shared a `GroupID`. Never require the operator to hand-edit it.
 
 Ship a template workbook with these exact headers and example rows.

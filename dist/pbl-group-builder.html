@@ -7,24 +7,29 @@
   <title>PBL Group Builder</title>
   <style>
     :root {
-      --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --line: #e2e2e2;
-      --accent: #0a7d5a; --accent-bg: rgba(10,125,90,0.08);
+      /* JABSOM / UH Mānoa palette: deep green masthead, green accents, warm-gold trim. */
+      --bg: #ffffff; --fg: #1a1a1a; --muted: #5f6b66; --line: #dfe5e2;
+      --brand: #024731; --brand-fg: #ffffff;          /* deep JABSOM green */
+      --accent: #00734a; --accent-bg: rgba(0,115,74,0.08);
+      --gold: #f0b323;                                 /* UH Mānoa warm accent */
       --err: #c0392b; --err-bg: rgba(192,57,43,0.08);
       --warn: #b8860b; --warn-bg: rgba(184,134,11,0.10);
-      --ok: #0a7d5a;
+      --ok: #00734a;
     }
     @media (prefers-color-scheme: dark) {
       :root { --bg:#1b1d1e; --fg:#e8e8e8; --muted:#9aa0a6; --line:#34383b;
-              --accent-bg:rgba(46,204,113,0.12); --err-bg:rgba(231,76,60,0.14);
-              --warn-bg:rgba(241,196,15,0.14); }
+              --brand:#013525; --accent:#2ecc8f; --accent-bg:rgba(46,204,143,0.14);
+              --err-bg:rgba(231,76,60,0.14); --warn-bg:rgba(241,196,15,0.14); }
     }
     * { box-sizing: border-box; }
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--fg); background: var(--bg); margin: 0; line-height: 1.5;
     }
-    header { padding: 1.25rem 1.5rem 0.5rem; }
-    h1 { margin: 0; font-size: 1.4rem; }
+    header { padding: 1.1rem 1.5rem; background: var(--brand); color: var(--brand-fg);
+             border-bottom: 4px solid var(--gold); }
+    h1 { margin: 0; font-size: 1.4rem; letter-spacing: 0.01em; }
+    header .tag { color: rgba(255,255,255,0.82); }
     .tag { color: var(--muted); margin: 0.15rem 0 0; font-size: 0.9rem; }
     main { padding: 1rem 1.5rem 4rem; max-width: 1200px; }
     .toolbar {
@@ -72,6 +77,38 @@
     .empty { color: var(--muted); padding: 1.5rem; text-align: center; }
     .hidden { display: none; }
     code { background: rgba(127,127,127,0.18); padding: 0.05rem 0.3rem; border-radius: 3px; }
+
+    /* --- Paste panel --- */
+    #pastePanel { margin: 0 0 1rem; padding: 0.9rem; border: 1px solid var(--line); border-radius: 8px; }
+    #pastePanel textarea {
+      width: 100%; min-height: 120px; font: 0.82rem ui-monospace, Menlo, Consolas, monospace;
+      padding: 0.5rem; border: 1px solid var(--line); border-radius: 6px; resize: vertical;
+      background: var(--bg); color: var(--fg);
+    }
+    #pastePanel .prow { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.6rem; }
+    .hint { color: var(--muted); font-size: 0.82rem; margin: 0 0 0.5rem; }
+
+    /* --- Inline editor --- */
+    .sheet-tools { display: flex; gap: 0.6rem; align-items: center; padding: 0.55rem 0; }
+    td.cell-edit { padding: 0; }
+    input.cell {
+      width: 100%; min-width: 6.5rem; font: inherit; font-size: 0.85rem; border: 0;
+      background: transparent; color: var(--fg); padding: 0.35rem 0.6rem;
+    }
+    input.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
+    /* Y/N toggle switch */
+    .tog { position: relative; display: inline-block; width: 38px; height: 20px; vertical-align: middle; }
+    .tog input { opacity: 0; width: 0; height: 0; }
+    .tog .track { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: 0.15s; cursor: pointer; }
+    .tog .track::before { content: ""; position: absolute; height: 14px; width: 14px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .tog input:checked + .track { background: var(--accent); }
+    .tog input:checked + .track::before { transform: translateX(18px); }
+    td.actions-cell { text-align: center; white-space: nowrap; }
+    th.actions-col { width: 1%; }
+    button.rowdel { border: none; background: transparent; color: var(--err); cursor: pointer;
+      font-size: 1rem; line-height: 1; padding: 0.15rem 0.45rem; border-radius: 4px; }
+    button.rowdel:hover { background: var(--err-bg); }
   </style>
 </head>
 <body>
@@ -91,8 +128,20 @@
         📂 Load workbook (.xlsx / .csv)
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
       </label>
+      <button id="btnPaste">📋 Paste rows</button>
       <button id="btnExport" class="primary" disabled>⬆ Export workbook (round-trip)</button>
       <span id="loadedName" class="tag"></span>
+    </div>
+
+    <div id="pastePanel" class="hidden">
+      <p class="hint">Copy rows from Excel or Google Sheets (include the header row) and paste below.
+        One sheet at a time — the matching sheet is detected from the column headers.</p>
+      <textarea id="pasteText" placeholder="StudentID&#9;Name&#9;Gender&#9;Imi&#9;Resident&#9;LCMentorID&#9;ScheduleTag&#10;AB01&#9;Anna Tomy&#9;F&#9;N&#9;Y&#9;T01&#9;"></textarea>
+      <div class="prow">
+        <button id="btnPasteLoad" class="primary">Load pasted rows</button>
+        <button id="btnPasteCancel">Cancel</button>
+        <span id="pasteMsg" class="hint" style="margin:0"></span>
+      </div>
     </div>
 
     <div id="validation" class="hidden">
@@ -151,18 +200,20 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
   const SHEET_ORDER = ['Students', 'Tutors', 'Conflicts', 'Groups', 'PBLHistory'];
   const UNITS = ['MD1','MD2','MD3','MD4','MD5','MD6','MD7'];
   const YN = new Set(['Y', 'N', '']);
+  // Columns rendered as a Y/N toggle in the inline editor.
+  const BOOL_COLS = new Set(['Imi', 'Resident', 'CoTutorOK']);
 
   // Template example rows — illustrate format; IDs are obviously fake.
   const TEMPLATE = {
     Students: [
-      { StudentID:'AB01', Name:'Alex Brown',  Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
-      { StudentID:'CD02', Name:'Casey Diaz',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'ImiGA' },
-      { StudentID:'EF03', Name:'Erin Fields', Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
+      { StudentID:'AB01', Name:'Anna Tomy',   Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
+      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'ImiGA' },
+      { StudentID:'EF03', Name:'Sara Tonin',  Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
     ],
     Tutors: [
-      { TutorID:'T01', Name:'Dr. Lee',  Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
-      { TutorID:'T02', Name:'Dr. Kana', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
-      { TutorID:'T03', Name:'Dr. Sato', Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
+      { TutorID:'T01', Name:'Dr. Cara Diak',     Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
+      { TutorID:'T02', Name:'Dr. Anne Esthesia', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
+      { TutorID:'T03', Name:'Dr. Hugh Morr',     Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
     ],
     Conflicts: [
       { TypeA_ID:'AB01', TypeB_ID:'CD02', Kind:'student-student', Reason:'prior issue' },
@@ -197,26 +248,41 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
   }
 
+  // A single table (from a .csv or a paste) — infer which sheet by its headers.
+  function singleTable(rows) {
+    const headers = rows.length ? Object.keys(rows[0]) : [];
+    const match = SHEET_ORDER.find(name =>
+      SCHEMA[name].required.every(c => headers.includes(c)) ||
+      // lenient: at least the key column present
+      (SCHEMA[name].key && headers.includes(SCHEMA[name].key)));
+    const out = {};
+    out[match || 'Students'] = rows;
+    return { match: match || 'Students', workbook: out };
+  }
+
   function parseWorkbook(data, filename) {
     const isCsv = /\.csv$/i.test(filename);
     const wb = XLSX.read(data, { type: isCsv ? 'string' : 'array' });
-    const out = {};
     if (isCsv) {
-      // A CSV holds a single table; infer which sheet by its headers.
-      const rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
-      const headers = rows.length ? Object.keys(rows[0]) : [];
-      const match = SHEET_ORDER.find(name =>
-        SCHEMA[name].required.every(c => headers.includes(c)) ||
-        // lenient: at least the key column present
-        (SCHEMA[name].key && headers.includes(SCHEMA[name].key)));
-      out[match || 'Students'] = rows;
-    } else {
-      for (const name of wb.SheetNames) {
-        const canonical = SHEET_ORDER.find(s => s.toLowerCase() === name.trim().toLowerCase());
-        out[canonical || name] = rowsFromSheet(wb.Sheets[name]);
-      }
+      return singleTable(rowsFromSheet(wb.Sheets[wb.SheetNames[0]])).workbook;
+    }
+    const out = {};
+    for (const name of wb.SheetNames) {
+      const canonical = SHEET_ORDER.find(s => s.toLowerCase() === name.trim().toLowerCase());
+      out[canonical || name] = rowsFromSheet(wb.Sheets[name]);
     }
     return out;
+  }
+
+  // Parse rows pasted from Excel / Google Sheets (tab-delimited) or CSV text.
+  function parsePasted(text) {
+    const body = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '');
+    if (!body.trim()) return { rows: [], match: null };
+    // Excel & Google Sheets copy as tab-separated; fall back to comma.
+    const FS = body.split('\n', 1)[0].includes('\t') ? '\t' : ',';
+    const wb = XLSX.read(body, { type: 'string', FS });
+    const rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
+    return { rows, match: singleTable(rows).match };
   }
 
   // ---- Validation (spec §5 step 2) ---------------------------------------
@@ -347,22 +413,77 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     });
   }
 
+  // Editable sheet grid: text cells are inputs, Y/N columns are toggles,
+  // and rows can be added/removed. Edits write straight back into `workbook`.
   function renderSheet() {
     const view = $('sheetView'); view.classList.remove('hidden');
-    const rows = workbook[activeTab] || [];
-    if (!rows.length) { view.innerHTML = `<div class="empty">${activeTab} is empty.</div>`; return; }
-    const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : Object.keys(rows[0]);
-    const bad = badRows[activeTab] || new Set();
-    const head = cols.map(c => `<th>${c}</th>`).join('');
+    const sheet = activeTab;
+    const rows = workbook[sheet] || (workbook[sheet] = []);
+    const cols = SCHEMA[sheet] ? SCHEMA[sheet].required : (rows[0] ? Object.keys(rows[0]) : []);
+    const bad = badRows[sheet] || new Set();
+
+    const cell = (r, i, c) => {
+      if (BOOL_COLS.has(c)) {
+        const on = up(r[c]) === 'Y';
+        return `<td class="cell-edit"><label class="tog"><input type="checkbox" data-r="${i}" data-c="${c}" data-bool="1"${on ? ' checked' : ''}><span class="track"></span></label></td>`;
+      }
+      return `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(norm(r[c]))}"></td>`;
+    };
+    const head = cols.map(c => `<th>${escapeHtml(c)}</th>`).join('') + `<th class="actions-col"></th>`;
     const body = rows.map((r, i) =>
       `<tr class="${bad.has(i) ? 'badrow' : ''}">` +
-      cols.map(c => `<td>${escapeHtml(norm(r[c]))}</td>`).join('') + `</tr>`).join('');
-    view.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+      cols.map(c => cell(r, i, c)).join('') +
+      `<td class="actions-cell"><button class="rowdel" data-del="${i}" title="Delete row">✕</button></td></tr>`).join('');
+
+    view.innerHTML =
+      `<div class="sheet-tools"><button id="btnAddRow">+ Add row</button>` +
+      `<span class="hint" style="margin:0">${rows.length} row${rows.length === 1 ? '' : 's'} — edit cells directly, toggle Y/N, or paste rows via “Paste rows”.</span></div>` +
+      (cols.length
+        ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
+        : `<div class="empty">${sheet} is empty.</div>`);
+
+    view.oninput = (e) => {
+      const t = e.target;
+      if (t.classList.contains('cell')) workbook[sheet][+t.dataset.r][t.dataset.c] = t.value;
+    };
+    view.onchange = (e) => {
+      const t = e.target;
+      if (t.dataset && t.dataset.bool) {
+        workbook[sheet][+t.dataset.r][t.dataset.c] = t.checked ? 'Y' : 'N';
+        refreshValidation();
+      } else if (t.classList && t.classList.contains('cell')) {
+        refreshValidation();   // re-validate when a text edit is committed (blur/Enter)
+      }
+    };
+    view.onclick = (e) => {
+      if (e.target.id === 'btnAddRow') { addRow(); return; }
+      const del = e.target.closest && e.target.closest('button.rowdel');
+      if (del) { workbook[sheet].splice(+del.dataset.del, 1); renderSheet(); refreshValidation(); }
+    };
+  }
+
+  function addRow() {
+    const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : [];
+    const blank = {}; cols.forEach(c => blank[c] = '');
+    (workbook[activeTab] = workbook[activeTab] || []).push(blank);
+    renderSheet(); refreshValidation();
+  }
+
+  // Re-validate after an edit; refresh the summary, tab counts, and row flags
+  // in place (without rebuilding inputs, so text-edit focus isn't disturbed).
+  function refreshValidation() {
+    const res = validate(workbook);
+    badRows = res.badRows;
+    renderValidation(res);
+    renderTabs();
+    const bad = badRows[activeTab] || new Set();
+    $('sheetView').querySelectorAll('tbody tr').forEach((tr, i) => tr.classList.toggle('badrow', bad.has(i)));
   }
 
   function escapeHtml(s) {
-    return s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+    return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
   }
+  const escapeAttr = escapeHtml;
 
   // ---- Workbook build / export -------------------------------------------
   function buildWorkbook(data) {
@@ -384,6 +505,20 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     XLSX.writeFile(wb, filename, { compression: true });
   }
 
+  // Shared load pipeline: validate, render the editor, enable export.
+  function loadWorkbook(wb, label, focusSheet) {
+    workbook = wb;
+    const res = validate(workbook);
+    badRows = res.badRows;
+    activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
+    $('placeholder').classList.add('hidden');
+    renderValidation(res);
+    renderTabs();
+    renderSheet();
+    $('btnExport').disabled = false;
+    if (label) $('loadedName').textContent = label;
+  }
+
   // ---- Wiring ------------------------------------------------------------
   $('btnTemplate').onclick = () => {
     download(buildWorkbook(TEMPLATE), 'PBL_template.xlsx');
@@ -397,16 +532,7 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
       try {
         const isCsv = /\.csv$/i.test(file.name);
         const data = isCsv ? ev.target.result : new Uint8Array(ev.target.result);
-        workbook = parseWorkbook(data, file.name);
-        const res = validate(workbook);
-        badRows = res.badRows;
-        activeTab = SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
-        $('placeholder').classList.add('hidden');
-        renderValidation(res);
-        renderTabs();
-        renderSheet();
-        $('btnExport').disabled = false;
-        $('loadedName').textContent = `Loaded: ${file.name}`;
+        loadWorkbook(parseWorkbook(data, file.name), `Loaded: ${file.name}`);
       } catch (err) {
         alert('Could not read this workbook:\n' + err.message);
         console.error(err);
@@ -415,6 +541,27 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     if (/\.csv$/i.test(file.name)) reader.readAsText(file);
     else reader.readAsArrayBuffer(file);
     e.target.value = ''; // allow re-loading the same file
+  };
+
+  // ---- Paste rows (from Excel / Google Sheets) ---------------------------
+  $('btnPaste').onclick = () => {
+    const p = $('pastePanel'); p.classList.toggle('hidden'); $('pasteMsg').textContent = '';
+    if (!p.classList.contains('hidden')) $('pasteText').focus();
+  };
+  $('btnPasteCancel').onclick = () => { $('pastePanel').classList.add('hidden'); };
+  $('btnPasteLoad').onclick = () => {
+    try {
+      const { rows, match } = parsePasted($('pasteText').value);
+      if (!rows.length) { $('pasteMsg').textContent = 'No rows found — include a header row.'; return; }
+      const wb = workbook || {};
+      wb[match] = rows;                       // replace the matched sheet (other sheets kept)
+      $('pasteText').value = '';
+      $('pastePanel').classList.add('hidden');
+      loadWorkbook(wb, `Pasted ${rows.length} row(s) → ${match}`, match);
+    } catch (err) {
+      $('pasteMsg').textContent = 'Could not parse pasted data: ' + err.message;
+      console.error(err);
+    }
   };
 
   $('btnExport').onclick = () => {
@@ -450,18 +597,20 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
   const SHEET_ORDER = ['Students', 'Tutors', 'Conflicts', 'Groups', 'PBLHistory'];
   const UNITS = ['MD1','MD2','MD3','MD4','MD5','MD6','MD7'];
   const YN = new Set(['Y', 'N', '']);
+  // Columns rendered as a Y/N toggle in the inline editor.
+  const BOOL_COLS = new Set(['Imi', 'Resident', 'CoTutorOK']);
 
   // Template example rows — illustrate format; IDs are obviously fake.
   const TEMPLATE = {
     Students: [
-      { StudentID:'AB01', Name:'Alex Brown',  Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
-      { StudentID:'CD02', Name:'Casey Diaz',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'ImiGA' },
-      { StudentID:'EF03', Name:'Erin Fields', Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
+      { StudentID:'AB01', Name:'Anna Tomy',   Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
+      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'ImiGA' },
+      { StudentID:'EF03', Name:'Sara Tonin',  Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
     ],
     Tutors: [
-      { TutorID:'T01', Name:'Dr. Lee',  Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
-      { TutorID:'T02', Name:'Dr. Kana', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
-      { TutorID:'T03', Name:'Dr. Sato', Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
+      { TutorID:'T01', Name:'Dr. Cara Diak',     Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
+      { TutorID:'T02', Name:'Dr. Anne Esthesia', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
+      { TutorID:'T03', Name:'Dr. Hugh Morr',     Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
     ],
     Conflicts: [
       { TypeA_ID:'AB01', TypeB_ID:'CD02', Kind:'student-student', Reason:'prior issue' },
@@ -496,26 +645,41 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
   }
 
+  // A single table (from a .csv or a paste) — infer which sheet by its headers.
+  function singleTable(rows) {
+    const headers = rows.length ? Object.keys(rows[0]) : [];
+    const match = SHEET_ORDER.find(name =>
+      SCHEMA[name].required.every(c => headers.includes(c)) ||
+      // lenient: at least the key column present
+      (SCHEMA[name].key && headers.includes(SCHEMA[name].key)));
+    const out = {};
+    out[match || 'Students'] = rows;
+    return { match: match || 'Students', workbook: out };
+  }
+
   function parseWorkbook(data, filename) {
     const isCsv = /\.csv$/i.test(filename);
     const wb = XLSX.read(data, { type: isCsv ? 'string' : 'array' });
-    const out = {};
     if (isCsv) {
-      // A CSV holds a single table; infer which sheet by its headers.
-      const rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
-      const headers = rows.length ? Object.keys(rows[0]) : [];
-      const match = SHEET_ORDER.find(name =>
-        SCHEMA[name].required.every(c => headers.includes(c)) ||
-        // lenient: at least the key column present
-        (SCHEMA[name].key && headers.includes(SCHEMA[name].key)));
-      out[match || 'Students'] = rows;
-    } else {
-      for (const name of wb.SheetNames) {
-        const canonical = SHEET_ORDER.find(s => s.toLowerCase() === name.trim().toLowerCase());
-        out[canonical || name] = rowsFromSheet(wb.Sheets[name]);
-      }
+      return singleTable(rowsFromSheet(wb.Sheets[wb.SheetNames[0]])).workbook;
+    }
+    const out = {};
+    for (const name of wb.SheetNames) {
+      const canonical = SHEET_ORDER.find(s => s.toLowerCase() === name.trim().toLowerCase());
+      out[canonical || name] = rowsFromSheet(wb.Sheets[name]);
     }
     return out;
+  }
+
+  // Parse rows pasted from Excel / Google Sheets (tab-delimited) or CSV text.
+  function parsePasted(text) {
+    const body = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '');
+    if (!body.trim()) return { rows: [], match: null };
+    // Excel & Google Sheets copy as tab-separated; fall back to comma.
+    const FS = body.split('\n', 1)[0].includes('\t') ? '\t' : ',';
+    const wb = XLSX.read(body, { type: 'string', FS });
+    const rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
+    return { rows, match: singleTable(rows).match };
   }
 
   // ---- Validation (spec §5 step 2) ---------------------------------------
@@ -646,22 +810,77 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     });
   }
 
+  // Editable sheet grid: text cells are inputs, Y/N columns are toggles,
+  // and rows can be added/removed. Edits write straight back into `workbook`.
   function renderSheet() {
     const view = $('sheetView'); view.classList.remove('hidden');
-    const rows = workbook[activeTab] || [];
-    if (!rows.length) { view.innerHTML = `<div class="empty">${activeTab} is empty.</div>`; return; }
-    const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : Object.keys(rows[0]);
-    const bad = badRows[activeTab] || new Set();
-    const head = cols.map(c => `<th>${c}</th>`).join('');
+    const sheet = activeTab;
+    const rows = workbook[sheet] || (workbook[sheet] = []);
+    const cols = SCHEMA[sheet] ? SCHEMA[sheet].required : (rows[0] ? Object.keys(rows[0]) : []);
+    const bad = badRows[sheet] || new Set();
+
+    const cell = (r, i, c) => {
+      if (BOOL_COLS.has(c)) {
+        const on = up(r[c]) === 'Y';
+        return `<td class="cell-edit"><label class="tog"><input type="checkbox" data-r="${i}" data-c="${c}" data-bool="1"${on ? ' checked' : ''}><span class="track"></span></label></td>`;
+      }
+      return `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(norm(r[c]))}"></td>`;
+    };
+    const head = cols.map(c => `<th>${escapeHtml(c)}</th>`).join('') + `<th class="actions-col"></th>`;
     const body = rows.map((r, i) =>
       `<tr class="${bad.has(i) ? 'badrow' : ''}">` +
-      cols.map(c => `<td>${escapeHtml(norm(r[c]))}</td>`).join('') + `</tr>`).join('');
-    view.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+      cols.map(c => cell(r, i, c)).join('') +
+      `<td class="actions-cell"><button class="rowdel" data-del="${i}" title="Delete row">✕</button></td></tr>`).join('');
+
+    view.innerHTML =
+      `<div class="sheet-tools"><button id="btnAddRow">+ Add row</button>` +
+      `<span class="hint" style="margin:0">${rows.length} row${rows.length === 1 ? '' : 's'} — edit cells directly, toggle Y/N, or paste rows via “Paste rows”.</span></div>` +
+      (cols.length
+        ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
+        : `<div class="empty">${sheet} is empty.</div>`);
+
+    view.oninput = (e) => {
+      const t = e.target;
+      if (t.classList.contains('cell')) workbook[sheet][+t.dataset.r][t.dataset.c] = t.value;
+    };
+    view.onchange = (e) => {
+      const t = e.target;
+      if (t.dataset && t.dataset.bool) {
+        workbook[sheet][+t.dataset.r][t.dataset.c] = t.checked ? 'Y' : 'N';
+        refreshValidation();
+      } else if (t.classList && t.classList.contains('cell')) {
+        refreshValidation();   // re-validate when a text edit is committed (blur/Enter)
+      }
+    };
+    view.onclick = (e) => {
+      if (e.target.id === 'btnAddRow') { addRow(); return; }
+      const del = e.target.closest && e.target.closest('button.rowdel');
+      if (del) { workbook[sheet].splice(+del.dataset.del, 1); renderSheet(); refreshValidation(); }
+    };
+  }
+
+  function addRow() {
+    const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : [];
+    const blank = {}; cols.forEach(c => blank[c] = '');
+    (workbook[activeTab] = workbook[activeTab] || []).push(blank);
+    renderSheet(); refreshValidation();
+  }
+
+  // Re-validate after an edit; refresh the summary, tab counts, and row flags
+  // in place (without rebuilding inputs, so text-edit focus isn't disturbed).
+  function refreshValidation() {
+    const res = validate(workbook);
+    badRows = res.badRows;
+    renderValidation(res);
+    renderTabs();
+    const bad = badRows[activeTab] || new Set();
+    $('sheetView').querySelectorAll('tbody tr').forEach((tr, i) => tr.classList.toggle('badrow', bad.has(i)));
   }
 
   function escapeHtml(s) {
-    return s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+    return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
   }
+  const escapeAttr = escapeHtml;
 
   // ---- Workbook build / export -------------------------------------------
   function buildWorkbook(data) {
@@ -683,6 +902,20 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     XLSX.writeFile(wb, filename, { compression: true });
   }
 
+  // Shared load pipeline: validate, render the editor, enable export.
+  function loadWorkbook(wb, label, focusSheet) {
+    workbook = wb;
+    const res = validate(workbook);
+    badRows = res.badRows;
+    activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
+    $('placeholder').classList.add('hidden');
+    renderValidation(res);
+    renderTabs();
+    renderSheet();
+    $('btnExport').disabled = false;
+    if (label) $('loadedName').textContent = label;
+  }
+
   // ---- Wiring ------------------------------------------------------------
   $('btnTemplate').onclick = () => {
     download(buildWorkbook(TEMPLATE), 'PBL_template.xlsx');
@@ -696,16 +929,7 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
       try {
         const isCsv = /\.csv$/i.test(file.name);
         const data = isCsv ? ev.target.result : new Uint8Array(ev.target.result);
-        workbook = parseWorkbook(data, file.name);
-        const res = validate(workbook);
-        badRows = res.badRows;
-        activeTab = SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
-        $('placeholder').classList.add('hidden');
-        renderValidation(res);
-        renderTabs();
-        renderSheet();
-        $('btnExport').disabled = false;
-        $('loadedName').textContent = `Loaded: ${file.name}`;
+        loadWorkbook(parseWorkbook(data, file.name), `Loaded: ${file.name}`);
       } catch (err) {
         alert('Could not read this workbook:\n' + err.message);
         console.error(err);
@@ -714,6 +938,27 @@ if(/^(?:'[^\\\/?*\[\]:]*'|[^'][^\\\/?*\[\]:'`~!@#$%^()\-=+{}|;,<.>]*)!#REF!$/.te
     if (/\.csv$/i.test(file.name)) reader.readAsText(file);
     else reader.readAsArrayBuffer(file);
     e.target.value = ''; // allow re-loading the same file
+  };
+
+  // ---- Paste rows (from Excel / Google Sheets) ---------------------------
+  $('btnPaste').onclick = () => {
+    const p = $('pastePanel'); p.classList.toggle('hidden'); $('pasteMsg').textContent = '';
+    if (!p.classList.contains('hidden')) $('pasteText').focus();
+  };
+  $('btnPasteCancel').onclick = () => { $('pastePanel').classList.add('hidden'); };
+  $('btnPasteLoad').onclick = () => {
+    try {
+      const { rows, match } = parsePasted($('pasteText').value);
+      if (!rows.length) { $('pasteMsg').textContent = 'No rows found — include a header row.'; return; }
+      const wb = workbook || {};
+      wb[match] = rows;                       // replace the matched sheet (other sheets kept)
+      $('pasteText').value = '';
+      $('pastePanel').classList.add('hidden');
+      loadWorkbook(wb, `Pasted ${rows.length} row(s) → ${match}`, match);
+    } catch (err) {
+      $('pasteMsg').textContent = 'Could not parse pasted data: ' + err.message;
+      console.error(err);
+    }
   };
 
   $('btnExport').onclick = () => {
@@ -758,18 +1003,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   const SHEET_ORDER = ['Students', 'Tutors', 'Conflicts', 'Groups', 'PBLHistory'];
   const UNITS = ['MD1','MD2','MD3','MD4','MD5','MD6','MD7'];
   const YN = new Set(['Y', 'N', '']);
+  // Columns rendered as a Y/N toggle in the inline editor.
+  const BOOL_COLS = new Set(['Imi', 'Resident', 'CoTutorOK']);
 
   // Template example rows — illustrate format; IDs are obviously fake.
   const TEMPLATE = {
     Students: [
-      { StudentID:'AB01', Name:'Alex Brown',  Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
-      { StudentID:'CD02', Name:'Casey Diaz',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'ImiGA' },
-      { StudentID:'EF03', Name:'Erin Fields', Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
+      { StudentID:'AB01', Name:'Anna Tomy',   Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
+      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'ImiGA' },
+      { StudentID:'EF03', Name:'Sara Tonin',  Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
     ],
     Tutors: [
-      { TutorID:'T01', Name:'Dr. Lee',  Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
-      { TutorID:'T02', Name:'Dr. Kana', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
-      { TutorID:'T03', Name:'Dr. Sato', Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
+      { TutorID:'T01', Name:'Dr. Cara Diak',     Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
+      { TutorID:'T02', Name:'Dr. Anne Esthesia', Availability:'AM',    MaxStudents:6, CoTutorOK:'N' },
+      { TutorID:'T03', Name:'Dr. Hugh Morr',     Availability:'PM',    MaxStudents:5, CoTutorOK:'Y' },
     ],
     Conflicts: [
       { TypeA_ID:'AB01', TypeB_ID:'CD02', Kind:'student-student', Reason:'prior issue' },
@@ -804,26 +1051,41 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
   }
 
+  // A single table (from a .csv or a paste) — infer which sheet by its headers.
+  function singleTable(rows) {
+    const headers = rows.length ? Object.keys(rows[0]) : [];
+    const match = SHEET_ORDER.find(name =>
+      SCHEMA[name].required.every(c => headers.includes(c)) ||
+      // lenient: at least the key column present
+      (SCHEMA[name].key && headers.includes(SCHEMA[name].key)));
+    const out = {};
+    out[match || 'Students'] = rows;
+    return { match: match || 'Students', workbook: out };
+  }
+
   function parseWorkbook(data, filename) {
     const isCsv = /\.csv$/i.test(filename);
     const wb = XLSX.read(data, { type: isCsv ? 'string' : 'array' });
-    const out = {};
     if (isCsv) {
-      // A CSV holds a single table; infer which sheet by its headers.
-      const rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
-      const headers = rows.length ? Object.keys(rows[0]) : [];
-      const match = SHEET_ORDER.find(name =>
-        SCHEMA[name].required.every(c => headers.includes(c)) ||
-        // lenient: at least the key column present
-        (SCHEMA[name].key && headers.includes(SCHEMA[name].key)));
-      out[match || 'Students'] = rows;
-    } else {
-      for (const name of wb.SheetNames) {
-        const canonical = SHEET_ORDER.find(s => s.toLowerCase() === name.trim().toLowerCase());
-        out[canonical || name] = rowsFromSheet(wb.Sheets[name]);
-      }
+      return singleTable(rowsFromSheet(wb.Sheets[wb.SheetNames[0]])).workbook;
+    }
+    const out = {};
+    for (const name of wb.SheetNames) {
+      const canonical = SHEET_ORDER.find(s => s.toLowerCase() === name.trim().toLowerCase());
+      out[canonical || name] = rowsFromSheet(wb.Sheets[name]);
     }
     return out;
+  }
+
+  // Parse rows pasted from Excel / Google Sheets (tab-delimited) or CSV text.
+  function parsePasted(text) {
+    const body = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '');
+    if (!body.trim()) return { rows: [], match: null };
+    // Excel & Google Sheets copy as tab-separated; fall back to comma.
+    const FS = body.split('\n', 1)[0].includes('\t') ? '\t' : ',';
+    const wb = XLSX.read(body, { type: 'string', FS });
+    const rows = rowsFromSheet(wb.Sheets[wb.SheetNames[0]]);
+    return { rows, match: singleTable(rows).match };
   }
 
   // ---- Validation (spec §5 step 2) ---------------------------------------
@@ -954,22 +1216,77 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
   }
 
+  // Editable sheet grid: text cells are inputs, Y/N columns are toggles,
+  // and rows can be added/removed. Edits write straight back into `workbook`.
   function renderSheet() {
     const view = $('sheetView'); view.classList.remove('hidden');
-    const rows = workbook[activeTab] || [];
-    if (!rows.length) { view.innerHTML = `<div class="empty">${activeTab} is empty.</div>`; return; }
-    const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : Object.keys(rows[0]);
-    const bad = badRows[activeTab] || new Set();
-    const head = cols.map(c => `<th>${c}</th>`).join('');
+    const sheet = activeTab;
+    const rows = workbook[sheet] || (workbook[sheet] = []);
+    const cols = SCHEMA[sheet] ? SCHEMA[sheet].required : (rows[0] ? Object.keys(rows[0]) : []);
+    const bad = badRows[sheet] || new Set();
+
+    const cell = (r, i, c) => {
+      if (BOOL_COLS.has(c)) {
+        const on = up(r[c]) === 'Y';
+        return `<td class="cell-edit"><label class="tog"><input type="checkbox" data-r="${i}" data-c="${c}" data-bool="1"${on ? ' checked' : ''}><span class="track"></span></label></td>`;
+      }
+      return `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(norm(r[c]))}"></td>`;
+    };
+    const head = cols.map(c => `<th>${escapeHtml(c)}</th>`).join('') + `<th class="actions-col"></th>`;
     const body = rows.map((r, i) =>
       `<tr class="${bad.has(i) ? 'badrow' : ''}">` +
-      cols.map(c => `<td>${escapeHtml(norm(r[c]))}</td>`).join('') + `</tr>`).join('');
-    view.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+      cols.map(c => cell(r, i, c)).join('') +
+      `<td class="actions-cell"><button class="rowdel" data-del="${i}" title="Delete row">✕</button></td></tr>`).join('');
+
+    view.innerHTML =
+      `<div class="sheet-tools"><button id="btnAddRow">+ Add row</button>` +
+      `<span class="hint" style="margin:0">${rows.length} row${rows.length === 1 ? '' : 's'} — edit cells directly, toggle Y/N, or paste rows via “Paste rows”.</span></div>` +
+      (cols.length
+        ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
+        : `<div class="empty">${sheet} is empty.</div>`);
+
+    view.oninput = (e) => {
+      const t = e.target;
+      if (t.classList.contains('cell')) workbook[sheet][+t.dataset.r][t.dataset.c] = t.value;
+    };
+    view.onchange = (e) => {
+      const t = e.target;
+      if (t.dataset && t.dataset.bool) {
+        workbook[sheet][+t.dataset.r][t.dataset.c] = t.checked ? 'Y' : 'N';
+        refreshValidation();
+      } else if (t.classList && t.classList.contains('cell')) {
+        refreshValidation();   // re-validate when a text edit is committed (blur/Enter)
+      }
+    };
+    view.onclick = (e) => {
+      if (e.target.id === 'btnAddRow') { addRow(); return; }
+      const del = e.target.closest && e.target.closest('button.rowdel');
+      if (del) { workbook[sheet].splice(+del.dataset.del, 1); renderSheet(); refreshValidation(); }
+    };
+  }
+
+  function addRow() {
+    const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : [];
+    const blank = {}; cols.forEach(c => blank[c] = '');
+    (workbook[activeTab] = workbook[activeTab] || []).push(blank);
+    renderSheet(); refreshValidation();
+  }
+
+  // Re-validate after an edit; refresh the summary, tab counts, and row flags
+  // in place (without rebuilding inputs, so text-edit focus isn't disturbed).
+  function refreshValidation() {
+    const res = validate(workbook);
+    badRows = res.badRows;
+    renderValidation(res);
+    renderTabs();
+    const bad = badRows[activeTab] || new Set();
+    $('sheetView').querySelectorAll('tbody tr').forEach((tr, i) => tr.classList.toggle('badrow', bad.has(i)));
   }
 
   function escapeHtml(s) {
-    return s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+    return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
   }
+  const escapeAttr = escapeHtml;
 
   // ---- Workbook build / export -------------------------------------------
   function buildWorkbook(data) {
@@ -991,6 +1308,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     XLSX.writeFile(wb, filename, { compression: true });
   }
 
+  // Shared load pipeline: validate, render the editor, enable export.
+  function loadWorkbook(wb, label, focusSheet) {
+    workbook = wb;
+    const res = validate(workbook);
+    badRows = res.badRows;
+    activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
+    $('placeholder').classList.add('hidden');
+    renderValidation(res);
+    renderTabs();
+    renderSheet();
+    $('btnExport').disabled = false;
+    if (label) $('loadedName').textContent = label;
+  }
+
   // ---- Wiring ------------------------------------------------------------
   $('btnTemplate').onclick = () => {
     download(buildWorkbook(TEMPLATE), 'PBL_template.xlsx');
@@ -1004,16 +1335,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       try {
         const isCsv = /\.csv$/i.test(file.name);
         const data = isCsv ? ev.target.result : new Uint8Array(ev.target.result);
-        workbook = parseWorkbook(data, file.name);
-        const res = validate(workbook);
-        badRows = res.badRows;
-        activeTab = SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
-        $('placeholder').classList.add('hidden');
-        renderValidation(res);
-        renderTabs();
-        renderSheet();
-        $('btnExport').disabled = false;
-        $('loadedName').textContent = `Loaded: ${file.name}`;
+        loadWorkbook(parseWorkbook(data, file.name), `Loaded: ${file.name}`);
       } catch (err) {
         alert('Could not read this workbook:\n' + err.message);
         console.error(err);
@@ -1022,6 +1344,27 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (/\.csv$/i.test(file.name)) reader.readAsText(file);
     else reader.readAsArrayBuffer(file);
     e.target.value = ''; // allow re-loading the same file
+  };
+
+  // ---- Paste rows (from Excel / Google Sheets) ---------------------------
+  $('btnPaste').onclick = () => {
+    const p = $('pastePanel'); p.classList.toggle('hidden'); $('pasteMsg').textContent = '';
+    if (!p.classList.contains('hidden')) $('pasteText').focus();
+  };
+  $('btnPasteCancel').onclick = () => { $('pastePanel').classList.add('hidden'); };
+  $('btnPasteLoad').onclick = () => {
+    try {
+      const { rows, match } = parsePasted($('pasteText').value);
+      if (!rows.length) { $('pasteMsg').textContent = 'No rows found — include a header row.'; return; }
+      const wb = workbook || {};
+      wb[match] = rows;                       // replace the matched sheet (other sheets kept)
+      $('pasteText').value = '';
+      $('pastePanel').classList.add('hidden');
+      loadWorkbook(wb, `Pasted ${rows.length} row(s) → ${match}`, match);
+    } catch (err) {
+      $('pasteMsg').textContent = 'Could not parse pasted data: ' + err.message;
+      console.error(err);
+    }
   };
 
   $('btnExport').onclick = () => {

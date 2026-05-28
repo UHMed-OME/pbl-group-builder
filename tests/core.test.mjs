@@ -25,7 +25,7 @@ assert.ok(XLSX && XLSX.utils, 'SheetJS failed to load');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const m = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/i);
 assert.ok(m, 'could not locate the app <script> block');
-const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, TEMPLATE, SCHEMA, SHEET_ORDER };';
+const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, TEMPLATE, SCHEMA, SHEET_ORDER };';
 
 // 3. Minimal stubs for the DOM/browser globals referenced at load time.
 const stubEl = () => new Proxy({}, {
@@ -74,5 +74,20 @@ assert.ok(/LCMentorID "T99" is not in the Tutors/.test(msgs), 'should flag unkno
 assert.ok(/Unit must be one of MD1/.test(msgs), 'should flag bad unit');
 assert.ok(/TutorID "T55" is not in the Tutors/.test(msgs), 'should flag unknown group tutor');
 console.log(`✓ validation caught ${res.errors.length} seeded errors`);
+
+// --- Test 3: pasted rows (Excel/Sheets are tab-delimited) parse + match ---
+const tsv = [
+  'StudentID\tName\tGender\tImi\tResident\tLCMentorID\tScheduleTag',
+  'GH04\tGil Bladder\tM\tN\tY\tT01\t',
+  'IJ05\tMy Graine\tF\tY\tN\tT03\tImiGA',
+].join('\n');
+const pasted = app.parsePasted(tsv);
+assert.equal(pasted.match, 'Students', 'tab-delimited paste should match the Students sheet');
+assert.equal(pasted.rows.length, 2, 'both pasted data rows parsed');
+assert.equal(pasted.rows[0].Name, 'Gil Bladder', 'pasted cell value parsed');
+// And a CSV paste still matches by headers.
+const csv = 'TutorID,Name,Availability,MaxStudents,CoTutorOK\nT09,Dr. Polly Mer,AM,6,Y';
+assert.equal(app.parsePasted(csv).match, 'Tutors', 'comma-delimited paste should match the Tutors sheet');
+console.log('✓ pasted rows parse and match the right sheet');
 
 console.log('\nALL TESTS PASSED');
