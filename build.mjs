@@ -16,6 +16,15 @@ if (!html.includes(tag)) {
   process.exit(1);
 }
 
+// Structural sanity: a missing close tag (e.g. </style>) renders the whole page as raw
+// text → blank screen, and the headless test wouldn't catch it (it runs only the script).
+for (const close of ['</style>', '</head>', '</body>', '</html>']) {
+  if (!html.includes(close)) {
+    console.error(`index.html is missing ${close} — aborting (the page would render blank).`);
+    process.exit(1);
+  }
+}
+
 // Guard against an accidental </script> inside the library text breaking the tag.
 // NOTE: pass a *function* to replace() so `$&`/`$'`/`$\`` sequences inside the minified
 // library are inserted verbatim, not treated as special replacement patterns (which would
