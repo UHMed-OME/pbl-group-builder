@@ -54,6 +54,12 @@ Auto-solve **plus** manual override. After solving, show a board (one column per
 3. Interactive board: drag-drop, live re-validation, locking, soft-weight sliders, re-solve.
 4. Export polish: write-back with history append, printable roster, PDF.
 
+## Repo hygiene (this repo is PUBLIC)
+
+- The repo is **public** under `UHMed-OME`. No student data may ever be committed; `.gitignore` excludes `*.xlsx`/`*.csv`/`/data/`.
+- A version-controlled pre-commit hook in `.githooks/pre-commit` hard-blocks committing any spreadsheet/data file (`.xlsx/.xls/.csv/.numbers/.ods/.tsv`), even with `git add -f`. Only `*.template.xlsx`/`*.template.csv` (de-identified) are allowed.
+- **After cloning, activate the hook:** `git config core.hooksPath .githooks` (it is not auto-enabled by clone).
+
 ## Running / testing
 
 There is no build or test tooling. To run, open the `.html` file directly in a browser (`start file.html` on Windows). When validating the solver, test against a real **de-identified** past unit to confirm it reproduces a sensible assignment — never use real student data in this repo.

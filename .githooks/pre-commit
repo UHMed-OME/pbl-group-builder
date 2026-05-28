@@ -1,0 +1,30 @@
+#!/bin/sh
+# FERPA guard: refuse to commit spreadsheet / data files that may contain
+# student data. This is a hard block and intentionally cannot be bypassed by
+# a forced `git add -f`, because the repo is PUBLIC.
+#
+# Allowed exception: files explicitly named *.template.xlsx / *.template.csv
+# (de-identified templates only).
+
+# Staged files (added/copied/modified/renamed), NUL-safe.
+blocked=$(git diff --cached --name-only --diff-filter=ACMR -z \
+  | tr '\0' '\n' \
+  | grep -Ei '\.(xlsx|xls|csv|numbers|ods|tsv)$' \
+  | grep -Eiv '\.template\.(xlsx|csv)$')
+
+if [ -n "$blocked" ]; then
+  echo "=============================================================="
+  echo " COMMIT BLOCKED — spreadsheet/data file(s) staged."
+  echo " This repo is PUBLIC. Student-data workbooks must never be"
+  echo " committed (FERPA). Offending file(s):"
+  echo "--------------------------------------------------------------"
+  echo "$blocked" | sed 's/^/   /'
+  echo "--------------------------------------------------------------"
+  echo " To unstage:  git restore --staged <file>"
+  echo " De-identified templates are allowed only if named"
+  echo " *.template.xlsx or *.template.csv."
+  echo "=============================================================="
+  exit 1
+fi
+
+exit 0
