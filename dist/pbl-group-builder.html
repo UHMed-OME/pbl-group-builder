@@ -22,19 +22,18 @@
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--fg); background: var(--bg); margin: 0; line-height: 1.5;
     }
-    /* Slim green masthead band with a gold trim rule. */
+    /* Light masthead: white surface, deep-green wordmark, single green accent rule. */
     header {
-      padding: 0.85rem 1.5rem;
-      background: linear-gradient(180deg, var(--brand) 0%, var(--brand-dark) 100%);
-      color: var(--brand-fg); border-bottom: 3px solid var(--gold);
+      padding: 0.9rem 1.5rem;
+      background: var(--bg); color: var(--fg);
+      border-bottom: 3px solid var(--brand);
       display: flex; align-items: center; gap: 0.85rem;
     }
-    .logo { flex: 0 0 auto; height: 44px; width: 44px; background: #fff; border-radius: 8px;
-            padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+    .logo { flex: 0 0 auto; height: 46px; width: 46px; background: #fff;
+            border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
     .logo img { height: 100%; width: 100%; display: block; object-fit: contain; }
     .masthead { min-width: 0; }
-    h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.01em; font-weight: 650; }
-    header .tag { color: rgba(255,255,255,0.85); }
+    h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.01em; font-weight: 700; color: var(--brand-dark); }
     .tag { color: var(--muted); margin: 0.15rem 0 0; font-size: 0.9rem; }
     main { padding: 1rem 1.5rem 4rem; max-width: 1200px; }
     .toolbar {
@@ -181,6 +180,8 @@
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
       </label>
       <button id="btnPaste">📋 Paste rows</button>
+      <button id="btnUndo" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
+      <button id="btnRedo" disabled title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
       <button id="btnExport" class="primary" disabled>⬆ Export workbook (round-trip)</button>
       <span id="loadedName" class="tag"></span>
     </div>
@@ -350,6 +351,34 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   let workbook = null;       // { Students:[...], Tutors:[...], ... } row objects
   let activeTab = null;
   let badRows = {};          // sheet -> Set of row indices flagged by validation
+
+  // ---- Undo / redo (snapshots of the whole workbook) ---------------------
+  let history = [];          // array of deep-cloned workbook states
+  let histPtr = -1;          // index of the current state within history
+  const HISTORY_MAX = 100;
+  const snapshot = () => JSON.parse(JSON.stringify(workbook));
+  function resetHistory() { history = [snapshot()]; histPtr = 0; updateUndoButtons(); }
+  function pushHistory() {
+    history = history.slice(0, histPtr + 1);   // drop any redo branch
+    history.push(snapshot());
+    if (history.length > HISTORY_MAX) history.shift();
+    histPtr = history.length - 1;
+    updateUndoButtons();
+  }
+  function restoreState(state) {
+    workbook = JSON.parse(JSON.stringify(state));
+    const res = validate(workbook);
+    badRows = res.badRows;
+    renderValidation(res); renderTabs(); renderSheet(); renderSolverControls();
+    updateUndoButtons();
+  }
+  function undo() { if (histPtr > 0) { histPtr--; restoreState(history[histPtr]); } }
+  function redo() { if (histPtr < history.length - 1) { histPtr++; restoreState(history[histPtr]); } }
+  function updateUndoButtons() {
+    const u = $('btnUndo'), r = $('btnRedo');
+    if (u) u.disabled = histPtr <= 0;
+    if (r) r.disabled = histPtr >= history.length - 1;
+  }
 
   // ---- Helpers -----------------------------------------------------------
   const $ = (id) => document.getElementById(id);
@@ -580,7 +609,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const t = e.target;
       if (t.dataset && t.dataset.bool) {
         workbook[sheet][+t.dataset.r][t.dataset.c] = t.checked ? 'Y' : 'N';
-        refreshValidation();
+        refreshValidation(); pushHistory();
       } else if (t.classList && t.classList.contains('tagsel')) {
         const r = +t.dataset.r, c = t.dataset.c;
         if (t.value === CUSTOM_TAG) {
@@ -592,15 +621,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         } else {
           workbook[sheet][r][c] = t.value;
         }
-        refreshValidation();
+        refreshValidation(); pushHistory();
       } else if (t.classList && t.classList.contains('cell')) {
-        refreshValidation();   // re-validate when a text edit is committed (blur/Enter)
+        refreshValidation(); pushHistory();   // re-validate + snapshot when a text edit commits (blur/Enter)
       }
     };
     view.onclick = (e) => {
       if (e.target.id === 'btnAddRow') { addRow(); return; }
       const del = e.target.closest && e.target.closest('button.rowdel');
-      if (del) { workbook[sheet].splice(+del.dataset.del, 1); renderSheet(); refreshValidation(); }
+      if (del) { workbook[sheet].splice(+del.dataset.del, 1); renderSheet(); refreshValidation(); pushHistory(); }
     };
   }
 
@@ -608,7 +637,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : [];
     const blank = {}; cols.forEach(c => blank[c] = '');
     (workbook[activeTab] = workbook[activeTab] || []).push(blank);
-    renderSheet(); refreshValidation();
+    renderSheet(); refreshValidation(); pushHistory();
   }
 
   // Re-validate after an edit; refresh the summary, tab counts, and row flags
@@ -986,6 +1015,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     renderTabs();
     renderSheet();
     renderSolverControls();
+    resetHistory();
     $('scorecard').innerHTML = ''; $('board').innerHTML = ''; lastResult = null;
     $('btnExport').disabled = false;
     if (label) $('loadedName').textContent = label;
@@ -1040,6 +1070,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       console.error(err);
     }
   };
+
+  // ---- Undo / redo -------------------------------------------------------
+  $('btnUndo').onclick = undo;
+  $('btnRedo').onclick = redo;
+  document.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey) || !workbook) return;
+    const k = e.key.toLowerCase();
+    // Let a text field / textarea keep its own native undo while being edited.
+    const t = e.target, tag = t && t.tagName;
+    const editingText = tag === 'TEXTAREA' || (tag === 'INPUT' && (t.type === 'text' || !t.type));
+    if (editingText) return;
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+  });
 
   // ---- Solve -------------------------------------------------------------
   $('btnSolve').onclick = () => {

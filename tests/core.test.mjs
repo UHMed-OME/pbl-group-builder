@@ -35,7 +35,7 @@ const stubEl = () => new Proxy({}, {
 });
 const sandbox = {
   XLSX,
-  document: { getElementById: stubEl, createElement: stubEl },
+  document: { getElementById: stubEl, createElement: stubEl, addEventListener(){} },
   FileReader: class { readAsText(){} readAsArrayBuffer(){} },
   alert: () => {},
   console,
