@@ -8,8 +8,8 @@
   <style>
     /* Light theme only (no dark-mode switch — see spec/CLAUDE.md). */
     :root {
-      /* JABSOM / UH Mānoa palette: green masthead band, green accents, warm-gold trim. */
-      --bg: #ffffff; --surface: #f6f8f7; --fg: #1a2420; --muted: #5f6b66; --line: #dfe5e2;
+      /* JABSOM / UH Mānoa palette: white masthead, green accent rule. */
+      --bg: #ffffff; --surface: #f4f7f5; --fg: #15201c; --muted: #4d5a54; --line: #d8e0dc;
       --brand: #0a7d4f; --brand-dark: #024731; --brand-fg: #ffffff;  /* slim green band */
       --accent: #00734a; --accent-bg: rgba(0,115,74,0.08);
       --gold: #f0b323;                                 /* UH Mānoa warm accent */
@@ -20,8 +20,12 @@
     * { box-sizing: border-box; }
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      color: var(--fg); background: var(--bg); margin: 0; line-height: 1.5;
+      color: var(--fg); background: var(--bg); margin: 0;
+      font-size: 16px; line-height: 1.6;
     }
+    h2.section { font-size: 1.05rem; font-weight: 700; color: var(--brand-dark);
+      margin: 1.6rem 0 0.2rem; letter-spacing: 0.01em; }
+    h2.section + .section-sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 0.4rem; }
     /* Light masthead: white surface, deep-green wordmark, single green accent rule. */
     header {
       padding: 0.9rem 1.5rem;
@@ -35,15 +39,15 @@
     .masthead { min-width: 0; }
     h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.01em; font-weight: 700; color: var(--brand-dark); }
     .tag { color: var(--muted); margin: 0.15rem 0 0; font-size: 0.9rem; }
-    main { padding: 1rem 1.5rem 4rem; max-width: 1200px; }
+    main { padding: 1.25rem 1.5rem 4rem; max-width: 1240px; }
     .toolbar {
       display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;
-      padding: 0.9rem 0; border-bottom: 1px solid var(--line); margin-bottom: 1rem;
+      padding: 1rem 0; border-bottom: 1px solid var(--line); margin-bottom: 1.25rem;
     }
     button, .filebtn {
-      font: inherit; cursor: pointer; border: 1px solid var(--line);
-      background: var(--bg); color: var(--fg); padding: 0.5rem 0.9rem;
-      border-radius: 6px; transition: background 0.12s;
+      font: inherit; font-size: 0.95rem; cursor: pointer; border: 1px solid var(--line);
+      background: var(--bg); color: var(--fg); padding: 0.55rem 0.95rem;
+      border-radius: 7px; transition: background 0.12s;
     }
     button:hover, .filebtn:hover { background: var(--accent-bg); }
     button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -52,33 +56,36 @@
     .filebtn { display: inline-flex; align-items: center; gap: 0.4rem; }
     input[type=file] { display: none; }
     .note {
-      border-left: 3px solid var(--accent); background: var(--accent-bg);
-      padding: 0.6rem 0.9rem; border-radius: 4px; margin: 0 0 1rem; font-size: 0.9rem;
+      border-left: 4px solid var(--accent); background: var(--accent-bg);
+      padding: 0.7rem 1rem; border-radius: 6px; margin: 0 0 1.25rem; font-size: 0.95rem;
     }
-    #validation { margin: 1rem 0; }
-    .vsummary { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; font-weight: 600; }
-    .pill { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.85rem; }
+    #validation { margin: 1.1rem 0; }
+    .vsummary { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem; font-weight: 600; }
+    .pill { padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
     .pill.ok { background: var(--accent-bg); color: var(--ok); }
     .pill.err { background: var(--err-bg); color: var(--err); }
     .pill.warn { background: var(--warn-bg); color: var(--warn); }
-    .issue { padding: 0.4rem 0.7rem; border-radius: 5px; margin-bottom: 0.35rem; font-size: 0.88rem; }
+    .issue { padding: 0.55rem 0.8rem; border-radius: 6px; margin-bottom: 0.4rem; font-size: 0.92rem; }
     .issue.err { background: var(--err-bg); border-left: 3px solid var(--err); }
     .issue.warn { background: var(--warn-bg); border-left: 3px solid var(--warn); }
     .issue .loc { font-weight: 600; }
-    .tabs { display: flex; gap: 0.3rem; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-top: 1.25rem; }
+    .tabs { display: flex; gap: 0.3rem; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-top: 0.5rem; }
     .tab {
-      padding: 0.45rem 0.85rem; border: 1px solid transparent; border-bottom: none;
-      border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.9rem; color: var(--muted);
+      padding: 0.55rem 1rem; border: 1px solid transparent; border-bottom: none;
+      border-radius: 7px 7px 0 0; cursor: pointer; font-size: 0.95rem; color: var(--muted);
     }
-    .tab.active { color: var(--fg); border-color: var(--line); background: var(--bg);
-      margin-bottom: -1px; font-weight: 600; }
+    .tab:hover { color: var(--fg); background: var(--surface); }
+    .tab.active { color: var(--brand-dark); border-color: var(--line); background: var(--bg);
+      margin-bottom: -1px; font-weight: 700; box-shadow: inset 0 2px 0 var(--brand); }
     .tab .count { color: var(--muted); font-weight: 400; }
-    .sheet-wrap { overflow: auto; border: 1px solid var(--line); border-top: none; border-radius: 0 0 6px 6px; }
-    table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
-    th { background: var(--accent-bg); position: sticky; top: 0; }
+    .sheet-wrap { overflow: auto; border: 1px solid var(--line); border-top: none; border-radius: 0 0 8px 8px; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { background: var(--surface); position: sticky; top: 0; font-weight: 700;
+      color: var(--brand-dark); border-bottom: 2px solid var(--line); }
+    tbody tr:hover td { background: var(--surface); }
     tr.badrow td { background: var(--err-bg); }
-    .empty { color: var(--muted); padding: 1.5rem; text-align: center; }
+    .empty { color: var(--muted); padding: 1.5rem; text-align: center; font-size: 0.95rem; }
     .hidden { display: none; }
     code { background: rgba(127,127,127,0.18); padding: 0.05rem 0.3rem; border-radius: 3px; }
 
@@ -90,29 +97,29 @@
       background: var(--bg); color: var(--fg);
     }
     #pastePanel .prow { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.6rem; }
-    .hint { color: var(--muted); font-size: 0.82rem; margin: 0 0 0.5rem; }
+    .hint { color: var(--muted); font-size: 0.88rem; margin: 0 0 0.5rem; }
 
     /* --- Inline editor --- */
-    .sheet-tools { display: flex; gap: 0.6rem; align-items: center; padding: 0.55rem 0; }
+    .sheet-tools { display: flex; gap: 0.6rem; align-items: center; padding: 0.6rem 0; }
     td.cell-edit { padding: 0; }
     input.cell {
-      width: 100%; min-width: 6.5rem; font: inherit; font-size: 0.85rem; border: 0;
-      background: transparent; color: var(--fg); padding: 0.35rem 0.6rem;
+      width: 100%; min-width: 7rem; font: inherit; font-size: 0.92rem; border: 0;
+      background: transparent; color: var(--fg); padding: 0.5rem 0.7rem;
     }
     input.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     select.cell {
-      width: 100%; min-width: 8rem; font: inherit; font-size: 0.85rem; border: 0;
-      background: transparent; color: var(--fg); padding: 0.32rem 0.5rem; cursor: pointer;
+      width: 100%; min-width: 9rem; font: inherit; font-size: 0.92rem; border: 0;
+      background: transparent; color: var(--fg); padding: 0.45rem 0.6rem; cursor: pointer;
     }
     select.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     /* Y/N toggle switch */
-    .tog { position: relative; display: inline-block; width: 38px; height: 20px; vertical-align: middle; }
+    .tog { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
     .tog input { opacity: 0; width: 0; height: 0; }
-    .tog .track { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: 0.15s; cursor: pointer; }
-    .tog .track::before { content: ""; position: absolute; height: 14px; width: 14px; left: 3px; top: 3px;
+    .tog .track { position: absolute; inset: 0; background: #c4ccc8; border-radius: 999px; transition: 0.15s; cursor: pointer; }
+    .tog .track::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px;
       background: #fff; border-radius: 50%; transition: 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
     .tog input:checked + .track { background: var(--accent); }
-    .tog input:checked + .track::before { transform: translateX(18px); }
+    .tog input:checked + .track::before { transform: translateX(20px); }
     td.actions-cell { text-align: center; white-space: nowrap; }
     th.actions-col { width: 1%; }
     button.rowdel { border: none; background: transparent; color: var(--err); cursor: pointer;
@@ -120,38 +127,41 @@
     button.rowdel:hover { background: var(--err-bg); }
 
     /* --- Solver: controls, scorecard, board --- */
-    #solver { margin-top: 1.6rem; }
+    #solver { margin-top: 0.5rem; }
     .solvebar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
-      padding: 0.85rem 0; border-top: 2px solid var(--line); }
-    .solvebar label { font-size: 0.9rem; font-weight: 600; }
-    .solvebar select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line);
-      border-radius: 6px; background: var(--bg); color: var(--fg); }
-    .weights { font-size: 0.85rem; }
+      padding: 0.9rem 1rem; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 8px; }
+    .solvebar label { font-size: 0.95rem; font-weight: 600; }
+    .solvebar select { font: inherit; font-size: 0.95rem; padding: 0.5rem 0.6rem;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+    .weights { font-size: 0.92rem; }
     .weights summary { cursor: pointer; color: var(--accent); font-weight: 600; }
-    .wgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 0.7rem 1.4rem; margin: 0.7rem 0 0.2rem; }
-    .wrow { display: flex; flex-direction: column; gap: 0.2rem; }
-    .wrow .wlab { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted); }
+    .wgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.9rem 1.6rem; margin: 0.8rem 0 0.2rem; }
+    .wrow { display: flex; flex-direction: column; gap: 0.3rem; }
+    .wrow .wlab { display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--muted); }
     .wrow .wlab b { color: var(--fg); }
-    .wrow input[type=range] { width: 100%; accent-color: var(--accent); }
-    #scorecard { margin: 1.1rem 0; }
-    .sc-hard { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.6rem; }
-    .sc-soft { display: flex; flex-wrap: wrap; gap: 1.3rem; font-size: 0.88rem; }
-    .sc-soft span { color: var(--muted); } .sc-soft b { color: var(--fg); }
-    .board { display: flex; gap: 0.8rem; overflow-x: auto; padding-bottom: 0.6rem; align-items: flex-start; }
-    .gcol { flex: 0 0 210px; border: 1px solid var(--line); border-radius: 8px;
-      background: var(--surface); display: flex; flex-direction: column; }
+    .wrow input[type=range] { width: 100%; height: 6px; accent-color: var(--accent); }
+    #scorecard { margin: 1.2rem 0; }
+    .sc-hard { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.7rem; }
+    .sc-soft { display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; font-size: 0.95rem;
+      padding: 0.7rem 0.9rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+    .sc-soft span { color: var(--muted); } .sc-soft b { color: var(--fg); font-variant-numeric: tabular-nums; }
+    .board { display: flex; gap: 0.9rem; overflow-x: auto; padding-bottom: 0.7rem; align-items: flex-start; }
+    .gcol { flex: 0 0 230px; border: 1px solid var(--line); border-radius: 10px;
+      background: var(--bg); display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .gcol.over { border-color: var(--err); }
-    .ghead { padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--line); }
-    .ghead .gid { font-weight: 700; }
-    .ghead .gmeta { font-size: 0.76rem; color: var(--muted); }
-    .ghead .gtutors { font-size: 0.8rem; color: var(--accent); margin-top: 0.1rem; }
-    .gbody { padding: 0.45rem; display: flex; flex-direction: column; gap: 0.32rem; min-height: 40px; }
-    .chip { padding: 0.32rem 0.5rem; border-radius: 6px; background: var(--bg);
-      border: 1px solid var(--line); font-size: 0.82rem; }
+    .ghead { padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--line); background: var(--surface); }
+    .ghead .gid { font-weight: 700; font-size: 1rem; color: var(--brand-dark); }
+    .ghead .gmeta { font-size: 0.82rem; color: var(--muted); }
+    .ghead .gtutors { font-size: 0.88rem; color: var(--accent); font-weight: 600; margin-top: 0.15rem; }
+    .gbody { padding: 0.55rem; display: flex; flex-direction: column; gap: 0.4rem; min-height: 48px; }
+    .chip { padding: 0.45rem 0.6rem; border-radius: 7px; background: var(--surface);
+      border: 1px solid var(--line); font-size: 0.9rem; }
     .chip .cname { font-weight: 600; }
-    .chip .ctags { color: var(--muted); font-size: 0.72rem; }
-    .gcount { font-size: 0.76rem; color: var(--muted); padding: 0 0.65rem 0.5rem; }
+    .chip .ctags { color: var(--muted); font-size: 0.8rem; margin-top: 0.1rem; }
+    .gcount { font-size: 0.82rem; color: var(--muted); padding: 0 0.8rem 0.6rem; }
   </style>
 </head>
 <body>
@@ -202,10 +212,14 @@
       <div id="issues"></div>
     </div>
 
+    <h2 class="section" id="dataHeading" hidden>Roster data</h2>
+    <p class="section-sub" id="dataSub" hidden>Review and edit the loaded sheets. Edits re-validate live and feed the solver.</p>
     <div id="tabs" class="tabs hidden"></div>
     <div id="sheetView" class="sheet-wrap hidden"></div>
 
     <section id="solver" class="hidden">
+      <h2 class="section">Build groups</h2>
+      <p class="section-sub">Pick the unit, optionally tune the soft-preference weights, then solve. The board and scorecard appear below.</p>
       <div class="solvebar">
         <label>Unit&nbsp; <select id="unitSel"></select></label>
         <button id="btnSolve" class="primary">▶ Solve groups</button>
@@ -299,13 +313,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     StudentID: 'Student ID', TutorID: 'Tutor ID', Name: 'Name', Gender: 'Gender',
     Imi: 'Imi Hoʻōla', Resident: 'Hawaiʻi Resident', LCMentorID: 'LC Mentor',
     ScheduleTag: 'Schedule', Availability: 'Availability', MaxStudents: 'Max Students',
-    CoTutorOK: 'Co-Tutor OK', TypeA_ID: 'First ID', TypeB_ID: 'Second ID',
-    Kind: 'Type', Reason: 'Reason', Unit: 'Unit', GroupID: 'Group',
+    CoTutorOK: 'Co-Tutor OK', TypeA_ID: 'Person A', TypeB_ID: 'Person B',
+    Kind: 'Conflict Type', Reason: 'Reason', Unit: 'Unit', GroupID: 'Group',
     TimeSlot: 'Time Slot', TutorIDs: 'Tutor(s)',
   };
   const FULL_DAYS = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
   const TAG_LABELS = { '': '— none —', ImiGA: 'Imi Hoʻōla GA', HOMEmgr: 'HOME Project Manager' };
-  const GENDER_LABELS = { F: 'Female', M: 'Male' };
+  const GENDER_LABELS = { F: 'Female', M: 'Male', X: 'Other' };
 
   const sheetLabel = (s) => SHEET_LABELS[s] || s;
   const colLabel = (c) => COLUMN_LABELS[c] || c;
@@ -317,6 +331,58 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (m) return `Exception — ${FULL_DAYS[m[1]] || m[1]} (${m[2].toUpperCase()})`;
     return t;
   }
+
+  // ---- Pick-lists: keep solver input sanitized + human-readable -----------
+  // Static enums (canonical value stored; human label shown), scoped per sheet
+  // so identifier columns like Tutors.TutorID stay free text.
+  const GENDER_OPTS   = [{ value:'F', label:'Female' }, { value:'M', label:'Male' }, { value:'X', label:'Other / Nonbinary' }];
+  const AVAIL_OPTS    = [{ value:'AM', label:'Mornings (AM)' }, { value:'PM', label:'Afternoons (PM)' }, { value:'AM,PM', label:'Mornings & Afternoons (AM, PM)' }];
+  const MAXSTU_OPTS   = [4,5,6,7,8].map(n => ({ value:String(n), label:`${n} students` }));
+  const KIND_OPTS     = [{ value:'student-student', label:'Student ↔ Student' }, { value:'tutor-student', label:'Tutor ↔ Student' }];
+  const TIMESLOT_OPTS = [{ value:'AM', label:'Morning (AM)' }, { value:'PM', label:'Afternoon (PM)' }];
+  const UNIT_OPTS     = UNITS.map(u => ({ value:u, label:u }));
+  // Per-(sheet, column) field kinds: `enum` = static list, `ref` = pick a record by name.
+  const FIELD_KINDS = {
+    Students:   { Gender: { enum: GENDER_OPTS }, LCMentorID: { ref: 'tutors' } },
+    Tutors:     { Availability: { enum: AVAIL_OPTS }, MaxStudents: { enum: MAXSTU_OPTS } },
+    Conflicts:  { Kind: { enum: KIND_OPTS }, TypeA_ID: { ref: 'people' }, TypeB_ID: { ref: 'people' } },
+    Groups:     { Unit: { enum: UNIT_OPTS }, TimeSlot: { enum: TIMESLOT_OPTS } },
+    PBLHistory: { Unit: { enum: UNIT_OPTS }, StudentID: { ref: 'students' }, TutorID: { ref: 'tutors' } },
+  };
+
+  const optionTag = (value, label, selected) =>
+    `<option value="${escapeAttr(value)}"${selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+  const idLabel = (id, nm) => (nm ? `${nm} (${id})` : id);
+
+  function enumOptions(opts, v) {
+    let html = optionTag('', '— choose —', v === '');
+    html += opts.map(o => optionTag(o.value, o.label, o.value === v)).join('');
+    if (v !== '' && !opts.some(o => o.value === v)) html += optionTag(v, `${v} (?)`, true); // keep unknown visible
+    return html;
+  }
+  function refOptions(kind, v) {
+    const peopleGroup = (label, rows, idK) => rows.length
+      ? `<optgroup label="${escapeHtml(label)}">` +
+        rows.map(r => optionTag(norm(r[idK]), idLabel(norm(r[idK]), norm(r.Name)), norm(r[idK]) === v)).join('') +
+        `</optgroup>` : '';
+    if (kind === 'people') {
+      let html = optionTag('', '— none —', v === '');
+      html += peopleGroup('Students', workbook.Students || [], 'StudentID');
+      html += peopleGroup('Tutors',   workbook.Tutors   || [], 'TutorID');
+      const known = [...(workbook.Students || []).map(r => norm(r.StudentID)),
+                     ...(workbook.Tutors   || []).map(r => norm(r.TutorID))];
+      if (v !== '' && !known.includes(v)) html += optionTag(v, `${v} (unknown)`, true);
+      return html;
+    }
+    const rows = kind === 'tutors' ? (workbook.Tutors || []) : (workbook.Students || []);
+    const idK = kind === 'tutors' ? 'TutorID' : 'StudentID';
+    let html = optionTag('', '— none —', v === '');
+    html += rows.map(r => optionTag(norm(r[idK]), idLabel(norm(r[idK]), norm(r.Name)), norm(r[idK]) === v)).join('');
+    if (v !== '' && !rows.some(r => norm(r[idK]) === v)) html += optionTag(v, `${v} (unknown)`, true);
+    return html;
+  }
+  const pickCell = (i, c, optionHTML) =>
+    `<td class="cell-edit"><select class="cell pick" data-r="${i}" data-c="${c}">${optionHTML}</select></td>`;
 
   // Template example rows — illustrate format; names are obviously-fake medical puns
   // and the data is constructed so the solver finds a clean (0-violation) assignment.
@@ -346,6 +412,54 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       { Unit:'MD1', StudentID:'AB01', GroupID:'G1', TutorID:'T02' },
     ],
   };
+
+  // A larger, realistic-scale demo cohort (~80 students, 14 tutors/groups for MD2,
+  // a prior MD1 history to exercise repeat-avoidance, sparse conflicts + a few
+  // schedule exceptions). Deterministic and built with enough slack to solve cleanly.
+  // Names are obviously-fake medical puns (first-pun + suffix-pun combos).
+  function makeExample() {
+    const firsts = ['Anna','Hema','Sara','Gil','Vena','Otto','Polly','Sy','Mel','Cam',
+                    'Val','Hugh','Bronca','Lymph','Sela','Glanda','Rena','Cysta','Derma','Neura'];
+    const lasts  = ['Tomy','Globin','Tonin','Bladder','Cava','Immune','Mer','Atica','Noma','Plasm',
+                    'Itis','Ostomy','Phasia','Trophy','Lysis','Edema','Sclera','Genic','Pathy','Stenia'];
+    const G = 14, N = 80;
+    const tid = n => 'T' + String(n).padStart(2, '0');
+    const sid = n => 'S' + String(n).padStart(2, '0');
+    const gid = n => 'G' + n;
+
+    const Tutors = [];
+    for (let t = 1; t <= G; t++)
+      Tutors.push({ TutorID: tid(t), Name: `Dr. ${firsts[(t * 3) % firsts.length]} ${lasts[(t * 5) % lasts.length]}`,
+                    Availability: t % 2 ? 'AM' : 'PM', MaxStudents: 6, CoTutorOK: t % 3 ? 'Y' : 'N' });
+    // This unit's slots (MD2): groups alternate AM/PM, tutor g covers group g.
+    const Groups = [];
+    for (let g = 1; g <= G; g++)
+      Groups.push({ Unit: 'MD2', GroupID: gid(g), TimeSlot: g % 2 ? 'AM' : 'PM', TutorIDs: tid(g) });
+
+    const Students = [], PBLHistory = [];
+    for (let i = 0; i < N; i++) {
+      const id = sid(i + 1);
+      let tag = '';
+      if (i % 23 === 0 && i) tag = 'Exception:Tue-AM';   // a few AM-bound students
+      else if (i % 19 === 0 && i) tag = 'ImiGA';          // informational
+      Students.push({
+        StudentID: id, Name: `${firsts[i % firsts.length]} ${lasts[(i * 7 + 3) % lasts.length]}`,
+        Gender: i % 2 ? 'M' : 'F',
+        Imi: i % 9 === 0 ? 'Y' : 'N',
+        Resident: i % 4 === 0 ? 'N' : 'Y',
+        LCMentorID: tid((i % G) + 1),
+        ScheduleTag: tag,
+      });
+      // Prior unit (MD1): a different tutor than their LC mentor, to drive repeat-avoidance.
+      PBLHistory.push({ Unit: 'MD1', StudentID: id, GroupID: gid(((i + 5) % G) + 1), TutorID: tid(((i + 5) % G) + 1) });
+    }
+    const Conflicts = [
+      { TypeA_ID: sid(1), TypeB_ID: sid(2),  Kind: 'student-student', Reason: 'prior issue' },
+      { TypeA_ID: sid(3), TypeB_ID: sid(4),  Kind: 'student-student', Reason: 'roommates' },
+      { TypeA_ID: tid(2), TypeB_ID: sid(6),  Kind: 'tutor-student',   Reason: 'family' },
+    ];
+    return { Students, Tutors, Conflicts, Groups, PBLHistory };
+  }
 
   // ---- State -------------------------------------------------------------
   let workbook = null;       // { Students:[...], Tutors:[...], ... } row objects
@@ -586,6 +700,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           `<option value="${CUSTOM_TAG}">Custom…</option>`;
         return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
       }
+      const fk = (FIELD_KINDS[sheet] || {})[c];
+      if (fk && fk.enum) return pickCell(i, c, enumOptions(fk.enum, v));
+      if (fk && fk.ref)  return pickCell(i, c, refOptions(fk.ref, v));
       return textCell(i, c, v);
     };
     const head = cols.map(c => `<th>${escapeHtml(colLabel(c))}</th>`).join('') + `<th class="actions-col"></th>`;
@@ -621,6 +738,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         } else {
           workbook[sheet][r][c] = t.value;
         }
+        refreshValidation(); pushHistory();
+      } else if (t.classList && t.classList.contains('pick')) {
+        workbook[sheet][+t.dataset.r][t.dataset.c] = t.value;
         refreshValidation(); pushHistory();
       } else if (t.classList && t.classList.contains('cell')) {
         refreshValidation(); pushHistory();   // re-validate + snapshot when a text edit commits (blur/Enter)
@@ -1011,6 +1131,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     badRows = res.badRows;
     activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
     $('placeholder').classList.add('hidden');
+    const dh = $('dataHeading'), ds = $('dataSub');
+    if (dh) dh.hidden = false;
+    if (ds) ds.hidden = false;
     renderValidation(res);
     renderTabs();
     renderSheet();
@@ -1022,9 +1145,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // ---- Wiring ------------------------------------------------------------
-  // Prefill the editor with example rows (deep-cloned so edits don't mutate TEMPLATE).
+  // Prefill the editor with the ~80-student demo cohort (freshly generated each time).
   $('btnExample').onclick = () => {
-    loadWorkbook(JSON.parse(JSON.stringify(TEMPLATE)), 'Example data — edit freely');
+    loadWorkbook(makeExample(), 'Example data (80 students) — edit freely');
   };
 
   $('btnTemplate').onclick = () => {
@@ -1107,6 +1230,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (!workbook) return;
     download(buildWorkbook(workbook), 'PBL_export.xlsx');
   };
+
+  // Start with example data loaded so the operator sees a working editor + board
+  // immediately. Gated on a real DOM (skipped under the headless test harness).
+  if (typeof document !== 'undefined' && document.body) {
+    loadWorkbook(makeExample(), 'Example data (80 students) — edit freely');
+  }
   </script>
 </body>
 </html>

@@ -25,7 +25,7 @@ assert.ok(XLSX && XLSX.utils, 'SheetJS failed to load');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const m = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/i);
 assert.ok(m, 'could not locate the app <script> block');
-const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, solve, defaultWeights, TEMPLATE, SCHEMA, SHEET_ORDER };';
+const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, solve, defaultWeights, makeExample, TEMPLATE, SCHEMA, SHEET_ORDER };';
 
 // 3. Minimal stubs for the DOM/browser globals referenced at load time.
 const stubEl = () => new Proxy({}, {
@@ -117,5 +117,16 @@ tight.Students = tight.Students.map(s => s.StudentID === 'EF03'
 const tightSol = app.solve(tight, 'MD1', app.defaultWeights());
 assert.ok(tightSol.violations.length > 0, 'over-constrained input surfaces at least one relaxed hard rule');
 console.log(`✓ over-constrained input flagged ${tightSol.violations.length} relaxed rule(s) instead of hiding them`);
+
+// --- Test 6: the ~80-student example cohort solves cleanly ----------------
+const ex = app.makeExample();
+assert.equal(ex.Students.length, 80, 'example cohort has 80 students');
+const exSol = app.solve(ex, 'MD2', app.defaultWeights());
+const exPlaced = exSol.groups.reduce((n, g) => n + g.students.length, 0);
+assert.equal(exPlaced, 80, 'all 80 example students placed');
+assert.equal(exSol.violations.length, 0, '80-student example solves with 0 relaxed hard rules, got: ' +
+  JSON.stringify(exSol.violations.slice(0, 5)));
+assert.ok(exSol.scorecard.hard.every(h => h.ok), 'example scorecard reports all hard constraints satisfied');
+console.log(`✓ 80-student example placed all ${exPlaced}, 0 violations across ${exSol.groups.length} groups`);
 
 console.log('\nALL TESTS PASSED');
