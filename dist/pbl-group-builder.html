@@ -126,6 +126,10 @@
     .summary-line { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; font-size: 0.95rem; }
     .summary-line .sc-n { color: var(--muted); } .summary-line .sc-n b { color: var(--fg); }
     button.ghost { border: 1px solid var(--line); background: var(--bg); font-weight: 600; }
+    .filter-bar { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; padding: 0.2rem 0 0.7rem; }
+    .filter-bar label { font-weight: 600; font-size: 0.92rem; }
+    .filter-bar select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line);
+      border-radius: 6px; background: var(--bg); color: var(--fg); }
     .sheet-wrap { overflow: auto; border: 1px solid var(--line); border-top: none; border-radius: 0 0 8px 8px; }
     /* Sticky first column keeps the key in view while scrolling wide sheets. */
     .sheet-wrap th:first-child, .sheet-wrap td:first-child { position: sticky; left: 0; background: var(--bg); z-index: 1; }
@@ -337,6 +341,10 @@
       </div>
 
       <div id="editorWrap" class="hidden">
+        <div id="rosterFilterBar" class="filter-bar hidden">
+          <label>Show class&nbsp; <select id="rosterClass"></select></label>
+          <span class="hint" style="margin:0">View and edit one class year at a time.</span>
+        </div>
         <div id="tabs" class="tabs hidden"></div>
         <div id="sheetView" class="sheet-wrap hidden"></div>
       </div>
@@ -811,6 +819,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // ---- Rendering ---------------------------------------------------------
   let editorOpen = false;        // is the spreadsheet editor expanded under the summary card?
   let lastValidation = null;     // most recent validate() result, for the summary card
+  let rosterFilter = '';         // view/edit one class at a time ('' = all classes)
+
+  // Class filter for the roster editor (only meaningful with 2+ cohorts).
+  function renderRosterFilter() {
+    const cohorts = [...new Set((workbook.Students || []).map(s => norm(s.Cohort)).filter(Boolean))].sort();
+    if (cohorts.length && !cohorts.includes(rosterFilter)) rosterFilter = '';   // reset stale filter
+    $('rosterFilterBar').classList.toggle('hidden', cohorts.length < 2);
+    $('rosterClass').innerHTML = `<option value="">All classes</option>` +
+      cohorts.map(c => `<option value="${escapeAttr(c)}"${c === rosterFilter ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+  }
 
   // At-a-glance roster summary with a toggle to expand the full editor.
   function renderSummary(res) {
@@ -898,14 +916,22 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return textCell(i, c, v);
     };
     const head = cols.map(c => `<th>${escapeHtml(colLabel(c))}</th>`).join('') + `<th class="actions-col"></th>`;
-    const body = rows.map((r, i) =>
+    // Optional class filter — only for sheets that carry a Cohort column. Keep the
+    // ORIGINAL row index (data-r / data-del) so edits + delete hit the right workbook row.
+    const hasCohort = (SCHEMA[sheet] ? SCHEMA[sheet].required : []).includes('Cohort');
+    const filterCo = (hasCohort && rosterFilter) ? rosterFilter : '';
+    const entries = rows.map((r, i) => [r, i]).filter(([r]) => !filterCo || norm(r.Cohort) === filterCo);
+
+    const body = entries.map(([r, i]) =>
       `<tr class="${bad.has(i) ? 'badrow' : ''}">` +
       cols.map(c => cell(r, i, c)).join('') +
       `<td class="actions-cell"><button class="rowdel" data-del="${i}" aria-label="Delete row" title="Delete row">${ICONS.trash}</button></td></tr>`).join('');
 
+    const shown = filterCo ? `${entries.length} of ${rows.length} · class ${escapeHtml(filterCo)}`
+                           : `${rows.length} row${rows.length === 1 ? '' : 's'}`;
     view.innerHTML =
       `<div class="sheet-tools"><button id="btnAddRow">+ Add row</button>` +
-      `<span class="hint" style="margin:0">${rows.length} row${rows.length === 1 ? '' : 's'} — edit cells directly, toggle Y/N, or paste rows via “Paste rows”.</span></div>` +
+      `<span class="hint" style="margin:0">${shown} — edit cells directly, toggle Y/N, or paste rows via “Paste rows”.</span></div>` +
       (cols.length
         ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
         : `<div class="empty">${sheet} is empty.</div>`);
@@ -956,6 +982,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function addRow() {
     const cols = SCHEMA[activeTab] ? SCHEMA[activeTab].required : [];
     const blank = {}; cols.forEach(c => blank[c] = '');
+    // If a class filter is active and this sheet has a Cohort, seed it so the new row shows.
+    if (rosterFilter && cols.includes('Cohort')) blank.Cohort = rosterFilter;
     (workbook[activeTab] = workbook[activeTab] || []).push(blank);
     renderSheet(); refreshValidation(); pushHistory();
   }
@@ -967,6 +995,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     badRows = res.badRows;
     renderValidation(res);
     renderSummary(res);
+    renderRosterFilter();
     renderTabs();
     const bad = badRows[activeTab] || new Set();
     $('sheetView').querySelectorAll('tbody tr').forEach((tr, i) => tr.classList.toggle('badrow', bad.has(i)));
@@ -1475,8 +1504,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
     $('placeholder').classList.add('hidden');
     editorOpen = false;               // start each load with the editor collapsed (calm summary)
+    rosterFilter = '';
     renderValidation(res);
     renderSummary(res);
+    renderRosterFilter();
     renderTabs();
     renderSheet();
     renderSolverControls();
@@ -1547,6 +1578,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const tab = e.target.closest && e.target.closest('.apptab');
     if (tab) showView(tab.dataset.view);
   });
+
+  // Roster class filter — view/edit one class year at a time.
+  $('rosterClass').onchange = () => { rosterFilter = $('rosterClass').value; renderSheet(); };
 
   // Prefill the editor with the ~80-student demo cohort (freshly generated each time).
   $('btnExample').onclick = () => {
