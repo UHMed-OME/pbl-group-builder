@@ -230,6 +230,7 @@
     .ghead .gid { font-weight: 700; font-size: 1rem; color: var(--brand-dark); }
     .ghead .gmeta { font-size: 0.82rem; color: var(--muted); }
     .ghead .gtutors { font-size: 0.88rem; color: var(--accent); font-weight: 600; margin-top: 0.15rem; }
+    .ghead .gsummary { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; font-variant-numeric: tabular-nums; }
     .gbody { padding: 0.55rem; display: flex; flex-direction: column; gap: 0.4rem; min-height: 48px; }
     .chip { padding: 0.45rem 0.6rem; border-radius: 7px; background: var(--surface);
       border: 1px solid var(--line); font-size: 0.9rem; cursor: grab; transition: box-shadow var(--motion), border-color var(--motion); }
@@ -313,8 +314,8 @@
 
   <nav class="apptabs" aria-label="Views and actions">
     <div class="apptab-group" id="appTabs" role="tablist" aria-label="Views">
-      <button class="apptab active" data-view="roster" role="tab" aria-selected="true">Roster</button>
-      <button class="apptab" data-view="groups" role="tab" aria-selected="false">Groups</button>
+      <button class="apptab active" data-view="roster" role="tab" aria-selected="true" aria-controls="view-roster">Roster</button>
+      <button class="apptab" data-view="groups" role="tab" aria-selected="false" aria-controls="view-groups">Groups</button>
     </div>
     <div class="apptabs-right">
       <span id="loadedName" class="tag"></span>
@@ -912,8 +913,10 @@
     const tabs = $('tabs'); tabs.classList.remove('hidden'); tabs.innerHTML = '';
     SHEET_ORDER.forEach(name => {
       const rows = workbook[name] || [];
-      const el = document.createElement('div');
+      const el = document.createElement('button');   // a real button → keyboard-operable
+      el.type = 'button';
       el.className = 'tab' + (name === activeTab ? ' active' : '');
+      el.setAttribute('aria-pressed', name === activeTab ? 'true' : 'false');
       el.innerHTML = `${escapeHtml(sheetLabel(name))} <span class="count">(${rows.length})</span>`;
       el.onclick = () => { activeTab = name; renderTabs(); renderSheet(); };
       tabs.appendChild(el);
@@ -1463,11 +1466,18 @@
           `<button class="lockbtn" data-sid="${escapeAttr(sid)}" aria-label="${lk ? 'Locked' : 'Lock in place'}" title="${lk ? 'Locked — kept in place on re-solve' : 'Lock in place'}">${lk ? ICONS.lock : ICONS.unlock}</button></span></div>` +
           (tags ? `<div class="ctags">${escapeHtml(tags)}</div>` : '') + `</div>`;
       }).join('') || `<div class="hint" style="margin:0">drop students here</div>`;
+      // At-a-glance composition so the operator can eyeball balance without reading chips.
+      let gf = 0, gm = 0, gImi = 0, gNon = 0;
+      g.students.forEach(sid => { const s = students.get(sid) || {};
+        if (up(s.Gender) === 'F') gf++; else if (up(s.Gender) === 'M') gm++;
+        if (up(s.Imi) === 'Y') gImi++; if (up(s.Resident) === 'N') gNon++; });
+      const summary = [`${gf}F`, `${gm}M`, gImi ? `${gImi} Imi` : '', gNon ? `${gNon} non-res` : ''].filter(Boolean).join(' · ');
       const over = g.students.length > g.capacity;
       return `<div class="gcol${over ? ' over' : ''}" data-gi="${gi}"><div class="ghead">` +
         `<div class="gid">${escapeHtml(groupLabel(g.GroupID))}</div>` +
         `<div class="gmeta">${escapeHtml(g.TimeSlot || '—')} · seats ${g.capacity}</div>` +
-        `<div class="gtutors">${escapeHtml(tnames)}</div></div>` +
+        `<div class="gtutors">${escapeHtml(tnames)}</div>` +
+        `<div class="gsummary">${escapeHtml(summary)}</div></div>` +
         `<div class="gbody" data-gi="${gi}">${chips}</div><div class="gcount">${g.students.length} / ${g.capacity}</div></div>`;
     }).join('');
   }
@@ -1658,6 +1668,13 @@
   $('appTabs').addEventListener('click', (e) => {
     const tab = e.target.closest && e.target.closest('.apptab');
     if (tab) showView(tab.dataset.view);
+  });
+  $('appTabs').addEventListener('keydown', (e) => {   // Left/Right arrow moves between tabs
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const list = [...$('appTabs').querySelectorAll('.apptab')];
+    const cur = Math.max(0, list.findIndex(b => b.classList.contains('active')));
+    const next = e.key === 'ArrowRight' ? (cur + 1) % list.length : (cur - 1 + list.length) % list.length;
+    showView(list[next].dataset.view); list[next].focus(); e.preventDefault();
   });
 
   // Roster class filter — view/edit one class year at a time.
