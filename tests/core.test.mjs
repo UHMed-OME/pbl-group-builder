@@ -160,10 +160,10 @@ console.log(`✓ write-back: ${sheets1.results.length} Results rows, MD2 history
 // --- Test 9: cohort filtering scopes the solve to one class ---------------
 const cohortEx = app.makeExample();
 assert.ok(cohortEx.Students.every(s => s.Cohort), 'example students carry a Cohort');
-const inCohort = app.solve(cohortEx, 'MD2', app.defaultWeights(), null, 'Class of 2028');
+const inCohort = app.solve(cohortEx, 'MD2', app.defaultWeights(), null, '2028');
 assert.equal(inCohort.groups.reduce((n, g) => n + g.students.length, 0), 80,
   'solving the present cohort places all 80');
-const noCohort = app.solve(cohortEx, 'MD2', app.defaultWeights(), null, 'Class of 1999');
+const noCohort = app.solve(cohortEx, 'MD2', app.defaultWeights(), null, '1999');
 assert.ok(noCohort.error || noCohort.groups.every(g => g.students.length === 0),
   'a cohort with no matching group slots yields no placements (flagged, not fudged)');
 console.log('✓ cohort filtering scopes the solve to the chosen class');

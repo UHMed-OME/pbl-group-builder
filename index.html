@@ -361,7 +361,7 @@
 
       <div id="editorWrap" class="hidden">
         <div id="rosterFilterBar" class="filter-bar hidden">
-          <label>Show class&nbsp; <select id="rosterClass"></select></label>
+          <label>Show class year&nbsp; <select id="rosterClass"></select></label>
           <span class="hint" style="margin:0">View and edit one class year at a time.</span>
         </div>
         <div id="tabs" class="tabs hidden"></div>
@@ -376,7 +376,7 @@
     <section id="view-groups" class="view" role="tabpanel" hidden>
       <div id="solver">
         <div class="solvebar">
-          <label id="cohortField" hidden>Class&nbsp; <select id="cohortSel"></select></label>
+          <label id="cohortField" hidden>Class year&nbsp; <select id="cohortSel"></select></label>
           <label>Unit&nbsp; <select id="unitSel"></select></label>
           <button id="btnSolve" class="primary"><svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg> Solve groups</button>
           <details class="weights">
@@ -437,7 +437,7 @@
     Conflicts:{ key: null, essential: ['TypeA_ID', 'TypeB_ID', 'Kind'],
       required: ['TypeA_ID', 'TypeB_ID', 'Kind', 'Reason'] },
     Groups:   { key: null, essential: ['Unit', 'GroupID'],
-      required: ['Unit', 'GroupID', 'TimeSlot', 'TutorIDs', 'Cohort'] },
+      required: ['Unit', 'GroupID', 'TimeSlot', 'TutorIDs'] },
     // NOTE: Excel reserves the worksheet name "History" (change-tracking),
     // so the spec's "History" sheet is stored as "PBLHistory" — same columns.
     PBLHistory: { key: null, essential: [],
@@ -480,7 +480,7 @@
     ScheduleTag: 'Schedule', Availability: 'Availability', MaxStudents: 'Max Students',
     CoTutorOK: 'Co-Tutor OK', TypeA_ID: 'Person A', TypeB_ID: 'Person B',
     Kind: 'Conflict Type', Reason: 'Reason', Unit: 'Unit', GroupID: 'Group',
-    TimeSlot: 'Time Slot', TutorIDs: 'Tutor(s)', Cohort: 'Class / Cohort',
+    TimeSlot: 'Time Slot', TutorIDs: 'Tutor(s)', Cohort: 'Class Year',
   };
   const FULL_DAYS = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
   const TAG_LABELS = { '': '— none —', ImiGA: 'Imi Hoʻōla GA', HOMEmgr: 'HOME Project Manager' };
@@ -553,12 +553,12 @@
   // and the data is constructed so the solver finds a clean (0-violation) assignment.
   const TEMPLATE = {
     Students: [
-      { StudentID:'AB01', Name:'Anna Tomy',    Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'',                Cohort:'Class of 2028' },
-      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'',                Cohort:'Class of 2028' },
-      { StudentID:'EF03', Name:'Sara Tonin',   Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'',                Cohort:'Class of 2028' },
-      { StudentID:'GH04', Name:'Gil Bladder',  Gender:'M', Imi:'N', Resident:'Y', LCMentorID:'T03', ScheduleTag:'',                Cohort:'Class of 2028' },
-      { StudentID:'IJ05', Name:'Vena Cava',    Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM', Cohort:'Class of 2028' },
-      { StudentID:'KL06', Name:'Otto Immune',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T03', ScheduleTag:'ImiGA',           Cohort:'Class of 2028' },
+      { StudentID:'AB01', Name:'Anna Tomy',    Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'',                Cohort:'2028' },
+      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'',                Cohort:'2028' },
+      { StudentID:'EF03', Name:'Sara Tonin',   Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'',                Cohort:'2028' },
+      { StudentID:'GH04', Name:'Gil Bladder',  Gender:'M', Imi:'N', Resident:'Y', LCMentorID:'T03', ScheduleTag:'',                Cohort:'2028' },
+      { StudentID:'IJ05', Name:'Vena Cava',    Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM', Cohort:'2028' },
+      { StudentID:'KL06', Name:'Otto Immune',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T03', ScheduleTag:'ImiGA',           Cohort:'2028' },
     ],
     Tutors: [
       { TutorID:'T01', Name:'Dr. Cara Diak',     Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
@@ -570,8 +570,8 @@
       { TypeA_ID:'T02',  TypeB_ID:'EF03', Kind:'tutor-student',   Reason:'family' },
     ],
     Groups: [
-      { Unit:'MD1', GroupID:'G1', TimeSlot:'AM', TutorIDs:'T02', Cohort:'Class of 2028' },
-      { Unit:'MD1', GroupID:'G2', TimeSlot:'PM', TutorIDs:'T03', Cohort:'Class of 2028' },
+      { Unit:'MD1', GroupID:'G1', TimeSlot:'AM', TutorIDs:'T02' },
+      { Unit:'MD1', GroupID:'G2', TimeSlot:'PM', TutorIDs:'T03' },
     ],
     PBLHistory: [
       { Unit:'MD1', StudentID:'AB01', GroupID:'G1', TutorID:'T02' },
@@ -592,7 +592,7 @@
     const sid = n => 'S' + String(n).padStart(2, '0');
     const gid = n => 'G' + n;
 
-    const COHORT = 'Class of 2028';
+    const COHORT = '2028';        // students belong to a class year; groups (units) are not cohort-tied
     const Tutors = [];
     for (let t = 1; t <= G; t++)
       Tutors.push({ TutorID: tid(t), Name: `Dr. ${firsts[(t * 3) % firsts.length]} ${lasts[(t * 5) % lasts.length]}`,
@@ -600,7 +600,7 @@
     // This unit's slots (MD2): groups alternate AM/PM, tutor g covers group g.
     const Groups = [];
     for (let g = 1; g <= G; g++)
-      Groups.push({ Unit: 'MD2', GroupID: gid(g), TimeSlot: g % 2 ? 'AM' : 'PM', TutorIDs: tid(g), Cohort: COHORT });
+      Groups.push({ Unit: 'MD2', GroupID: gid(g), TimeSlot: g % 2 ? 'AM' : 'PM', TutorIDs: tid(g) });
 
     const Students = [], PBLHistory = [];
     for (let i = 0; i < N; i++) {
@@ -1082,11 +1082,10 @@
     return { priorTutors, priorMates };
   }
 
-  // This unit's group slots (optionally scoped to one cohort), with parsed co-tutors and a
-  // capacity (min of tutor caps, default 6).
-  function groupsForUnit(wb, unit, tutorsById, cohort) {
-    const co = norm(cohort);
-    return (wb.Groups || []).filter(g => norm(g.Unit) === unit && (!co || norm(g.Cohort) === co)).map((g) => {
+  // This unit's group slots, with parsed co-tutors and a capacity (min of tutor caps, default 6).
+  // Groups are not cohort-specific — the same unit slots are reused for whichever class is solved.
+  function groupsForUnit(wb, unit, tutorsById) {
+    return (wb.Groups || []).filter(g => norm(g.Unit) === unit).map((g) => {
       const tutors = splitIds(g.TutorIDs);
       const caps = tutors.map(t => { const tt = tutorsById.get(t); const n = tt ? Number(tt.MaxStudents) : NaN;
                                      return isFinite(n) && n > 0 ? n : 6; });
@@ -1268,9 +1267,9 @@
     const co = norm(cohort);
     const idx = buildIndex(wb);
     idx.prior = priorData(idx.history, unit);
-    const groups = groupsForUnit(wb, unit, idx.tutorsById, co);
+    const groups = groupsForUnit(wb, unit, idx.tutorsById);   // all of this unit's slots (any class)
     let students = (wb.Students || []).filter(s => norm(s.StudentID));
-    if (co) students = students.filter(s => norm(s.Cohort) === co);
+    if (co) students = students.filter(s => norm(s.Cohort) === co);   // but only the chosen class's students
     const w = weights || defaultWeights();
     if (!groups.length)
       return { unit, cohort: co, groups: [], violations: [], capacityShortfall: students.length,
