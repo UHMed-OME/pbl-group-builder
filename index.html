@@ -29,8 +29,9 @@
       color: var(--brand-fg); border-bottom: 3px solid var(--gold);
       display: flex; align-items: center; gap: 0.85rem;
     }
-    .logo { flex: 0 0 auto; height: 38px; width: 38px; }
-    .logo svg { height: 100%; width: 100%; display: block; }
+    .logo { flex: 0 0 auto; height: 44px; width: 44px; background: #fff; border-radius: 8px;
+            padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+    .logo img { height: 100%; width: 100%; display: block; object-fit: contain; }
     .masthead { min-width: 0; }
     h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.01em; font-weight: 650; }
     header .tag { color: rgba(255,255,255,0.85); }
@@ -118,20 +119,48 @@
     button.rowdel { border: none; background: transparent; color: var(--err); cursor: pointer;
       font-size: 1rem; line-height: 1; padding: 0.15rem 0.45rem; border-radius: 4px; }
     button.rowdel:hover { background: var(--err-bg); }
+
+    /* --- Solver: controls, scorecard, board --- */
+    #solver { margin-top: 1.6rem; }
+    .solvebar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
+      padding: 0.85rem 0; border-top: 2px solid var(--line); }
+    .solvebar label { font-size: 0.9rem; font-weight: 600; }
+    .solvebar select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line);
+      border-radius: 6px; background: var(--bg); color: var(--fg); }
+    .weights { font-size: 0.85rem; }
+    .weights summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+    .wgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.7rem 1.4rem; margin: 0.7rem 0 0.2rem; }
+    .wrow { display: flex; flex-direction: column; gap: 0.2rem; }
+    .wrow .wlab { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted); }
+    .wrow .wlab b { color: var(--fg); }
+    .wrow input[type=range] { width: 100%; accent-color: var(--accent); }
+    #scorecard { margin: 1.1rem 0; }
+    .sc-hard { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.6rem; }
+    .sc-soft { display: flex; flex-wrap: wrap; gap: 1.3rem; font-size: 0.88rem; }
+    .sc-soft span { color: var(--muted); } .sc-soft b { color: var(--fg); }
+    .board { display: flex; gap: 0.8rem; overflow-x: auto; padding-bottom: 0.6rem; align-items: flex-start; }
+    .gcol { flex: 0 0 210px; border: 1px solid var(--line); border-radius: 8px;
+      background: var(--surface); display: flex; flex-direction: column; }
+    .gcol.over { border-color: var(--err); }
+    .ghead { padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--line); }
+    .ghead .gid { font-weight: 700; }
+    .ghead .gmeta { font-size: 0.76rem; color: var(--muted); }
+    .ghead .gtutors { font-size: 0.8rem; color: var(--accent); margin-top: 0.1rem; }
+    .gbody { padding: 0.45rem; display: flex; flex-direction: column; gap: 0.32rem; min-height: 40px; }
+    .chip { padding: 0.32rem 0.5rem; border-radius: 6px; background: var(--bg);
+      border: 1px solid var(--line); font-size: 0.82rem; }
+    .chip .cname { font-weight: 600; }
+    .chip .ctags { color: var(--muted); font-size: 0.72rem; }
+    .gcount { font-size: 0.76rem; color: var(--muted); padding: 0 0.65rem 0.5rem; }
   </style>
 </head>
 <body>
   <header>
-    <!-- LOGO: inline SVG placeholder (kept inline so the file stays offline / FERPA-safe).
-         To use the real JABSOM logo, replace the <svg> below with the official mark
-         (inline SVG, or <img src="data:image/png;base64,...">). Do NOT link to a remote URL. -->
-    <span class="logo" aria-hidden="true">
-      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="23" fill="#ffffff" opacity="0.12"/>
-        <circle cx="24" cy="24" r="23" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.55"/>
-        <path d="M24 9c-4 6-9 8-9 15a9 9 0 0 0 18 0c0-7-5-9-9-15z" fill="#ffffff"/>
-        <path d="M24 14c-2.5 4-5.5 5.5-5.5 10a5.5 5.5 0 0 0 5.5 5.5z" fill="var(--gold)"/>
-      </svg>
+    <!-- LOGO: referenced relatively (works on GitHub Pages and via file://); build.mjs
+         inlines it as a data URI for the single self-contained file. Never a remote URL. -->
+    <span class="logo">
+      <img src="vendor/jabsom-logo.svg" alt="John A. Burns School of Medicine">
     </span>
     <div class="masthead">
       <h1>PBL Group Builder</h1>
@@ -174,6 +203,19 @@
 
     <div id="tabs" class="tabs hidden"></div>
     <div id="sheetView" class="sheet-wrap hidden"></div>
+
+    <section id="solver" class="hidden">
+      <div class="solvebar">
+        <label>Unit&nbsp; <select id="unitSel"></select></label>
+        <button id="btnSolve" class="primary">▶ Solve groups</button>
+        <details class="weights">
+          <summary>Soft-preference weights</summary>
+          <div class="wgrid" id="weights"></div>
+        </details>
+      </div>
+      <div id="scorecard"></div>
+      <div id="board"></div>
+    </section>
 
     <div id="placeholder" class="empty">
       Load a workbook or paste rows to begin — or click <strong>Load example data</strong> to
@@ -219,12 +261,46 @@
     ...SCHED_DAYS.flatMap(d => SCHED_SLOTS.map(s => `Exception:${d}-${s}`))];
   const CUSTOM_TAG = '__custom__';
 
-  // Template example rows — illustrate format; IDs are obviously fake.
+  // ---- Display labels --------------------------------------------------
+  // The workbook round-trip needs the exact canonical keys/values, so we keep
+  // those in the data and only map to plain-English titles when rendering.
+  const SHEET_LABELS = {
+    Students: 'Students', Tutors: 'Tutors', Conflicts: 'Conflicts',
+    Groups: 'Groups', PBLHistory: 'History',
+  };
+  const COLUMN_LABELS = {
+    StudentID: 'Student ID', TutorID: 'Tutor ID', Name: 'Name', Gender: 'Gender',
+    Imi: 'Imi Hoʻōla', Resident: 'Hawaiʻi Resident', LCMentorID: 'LC Mentor',
+    ScheduleTag: 'Schedule', Availability: 'Availability', MaxStudents: 'Max Students',
+    CoTutorOK: 'Co-Tutor OK', TypeA_ID: 'First ID', TypeB_ID: 'Second ID',
+    Kind: 'Type', Reason: 'Reason', Unit: 'Unit', GroupID: 'Group',
+    TimeSlot: 'Time Slot', TutorIDs: 'Tutor(s)',
+  };
+  const FULL_DAYS = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+  const TAG_LABELS = { '': '— none —', ImiGA: 'Imi Hoʻōla GA', HOMEmgr: 'HOME Project Manager' };
+  const GENDER_LABELS = { F: 'Female', M: 'Male' };
+
+  const sheetLabel = (s) => SHEET_LABELS[s] || s;
+  const colLabel = (c) => COLUMN_LABELS[c] || c;
+  const genderLabel = (g) => GENDER_LABELS[up(g)] || norm(g);
+  function tagLabel(tag) {
+    const t = norm(tag);
+    if (t in TAG_LABELS) return TAG_LABELS[t];
+    const m = /^Exception:(\w+)-(AM|PM)$/i.exec(t);
+    if (m) return `Exception — ${FULL_DAYS[m[1]] || m[1]} (${m[2].toUpperCase()})`;
+    return t;
+  }
+
+  // Template example rows — illustrate format; names are obviously-fake medical puns
+  // and the data is constructed so the solver finds a clean (0-violation) assignment.
   const TEMPLATE = {
     Students: [
-      { StudentID:'AB01', Name:'Anna Tomy',   Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
-      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'ImiGA' },
-      { StudentID:'EF03', Name:'Sara Tonin',  Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
+      { StudentID:'AB01', Name:'Anna Tomy',    Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
+      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'' },
+      { StudentID:'EF03', Name:'Sara Tonin',   Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'' },
+      { StudentID:'GH04', Name:'Gil Bladder',  Gender:'M', Imi:'N', Resident:'Y', LCMentorID:'T03', ScheduleTag:'' },
+      { StudentID:'IJ05', Name:'Vena Cava',    Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
+      { StudentID:'KL06', Name:'Otto Immune',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T03', ScheduleTag:'ImiGA' },
     ],
     Tutors: [
       { TutorID:'T01', Name:'Dr. Cara Diak',     Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
@@ -236,11 +312,11 @@
       { TypeA_ID:'T02',  TypeB_ID:'EF03', Kind:'tutor-student',   Reason:'family' },
     ],
     Groups: [
-      { Unit:'MD1', GroupID:'G1', TimeSlot:'AM', TutorIDs:'T01' },
+      { Unit:'MD1', GroupID:'G1', TimeSlot:'AM', TutorIDs:'T02' },
       { Unit:'MD1', GroupID:'G2', TimeSlot:'PM', TutorIDs:'T03' },
     ],
     PBLHistory: [
-      { Unit:'MD1', StudentID:'AB01', GroupID:'G1', TutorID:'T01' },
+      { Unit:'MD1', StudentID:'AB01', GroupID:'G1', TutorID:'T02' },
     ],
   };
 
@@ -423,7 +499,7 @@
       const rows = workbook[name] || [];
       const el = document.createElement('div');
       el.className = 'tab' + (name === activeTab ? ' active' : '');
-      el.innerHTML = `${name} <span class="count">(${rows.length})</span>`;
+      el.innerHTML = `${escapeHtml(sheetLabel(name))} <span class="count">(${rows.length})</span>`;
       el.onclick = () => { activeTab = name; renderTabs(); renderSheet(); };
       tabs.appendChild(el);
     });
@@ -451,13 +527,13 @@
         // A value not in the preset list is a custom one — show it as a text box.
         if (v && !SCHEDULE_TAGS.includes(v)) return textCell(i, c, v);
         const opts = SCHEDULE_TAGS.map(t =>
-          `<option value="${escapeAttr(t)}"${t === v ? ' selected' : ''}>${t === '' ? '— none —' : escapeHtml(t)}</option>`).join('') +
+          `<option value="${escapeAttr(t)}"${t === v ? ' selected' : ''}>${escapeHtml(tagLabel(t))}</option>`).join('') +
           `<option value="${CUSTOM_TAG}">Custom…</option>`;
         return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
       }
       return textCell(i, c, v);
     };
-    const head = cols.map(c => `<th>${escapeHtml(c)}</th>`).join('') + `<th class="actions-col"></th>`;
+    const head = cols.map(c => `<th>${escapeHtml(colLabel(c))}</th>`).join('') + `<th class="actions-col"></th>`;
     const body = rows.map((r, i) =>
       `<tr class="${bad.has(i) ? 'badrow' : ''}">` +
       cols.map(c => cell(r, i, c)).join('') +
@@ -525,6 +601,334 @@
   }
   const escapeAttr = escapeHtml;
 
+  /* =========================================================================
+     PHASE 2 — SOLVER (spec §3–4). Pure functions; no DOM. Heuristic:
+     domain reduction → greedy seed (most-constrained first) → hill-climbing
+     local search over swaps/moves → scorecard. Over-constrained input is not
+     fudged: the least-bad placement is kept and the relaxed hard rule flagged.
+     ========================================================================= */
+
+  // Adjustable soft-preference weights (spec §3 — must not be hardcoded; UI sliders).
+  const SOFT = [
+    { key: 'imi',    label: 'Spread Imi Hoʻōla students', def: 10 },
+    { key: 'nonres', label: 'Spread non-residents',       def: 4 },
+    { key: 'gender', label: 'Gender balance',             def: 3 },
+    { key: 'repeat', label: 'Avoid repeat groupmates',    def: 6 },
+  ];
+  function defaultWeights() { const w = {}; SOFT.forEach(s => w[s.key] = s.def); return w; }
+
+  // Small deterministic PRNG so results are reproducible across restarts/runs.
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const pairKey = (a, b) => a < b ? a + '|' + b : b + '|' + a;
+
+  // Index the workbook into fast lookups the solver needs.
+  function buildIndex(wb) {
+    const studentsById = new Map((wb.Students || []).map(s => [norm(s.StudentID), s]).filter(e => e[0]));
+    const tutorsById   = new Map((wb.Tutors   || []).map(t => [norm(t.TutorID),   t]).filter(e => e[0]));
+    const ssConf = new Set();   // student-student, normalized pair key
+    const tsConf = new Set();   // 'tutorId|studentId'
+    (wb.Conflicts || []).forEach(r => {
+      const a = norm(r.TypeA_ID), b = norm(r.TypeB_ID), kind = norm(r.Kind).toLowerCase();
+      if (!a || !b) return;
+      if (kind === 'student-student') ssConf.add(pairKey(a, b));
+      else if (kind === 'tutor-student') tsConf.add((tutorsById.has(a) ? a + '|' + b : b + '|' + a));
+    });
+    return { studentsById, tutorsById, ssConf, tsConf, history: wb.PBLHistory || [] };
+  }
+
+  // Prior-unit data for repeat avoidance (excludes the unit being solved, so re-solving
+  // the current unit doesn't conflict with its own already-recorded history).
+  function priorData(history, unit) {
+    const priorTutors = new Map();   // studentId -> Set(tutorId)
+    const buckets = new Map();       // 'unit|group' -> [studentId]
+    history.forEach(r => {
+      const u = norm(r.Unit), sid = norm(r.StudentID), gid = norm(r.GroupID), tid = norm(r.TutorID);
+      if (!sid || u === unit) return;
+      if (tid) { if (!priorTutors.has(sid)) priorTutors.set(sid, new Set()); priorTutors.get(sid).add(tid); }
+      if (gid) { const k = u + '|' + gid; if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(sid); }
+    });
+    const priorMates = new Map();    // studentId -> Set(studentId) who shared a prior group
+    const link = (a, b) => { if (!priorMates.has(a)) priorMates.set(a, new Set()); priorMates.get(a).add(b); };
+    for (const arr of buckets.values())
+      for (let i = 0; i < arr.length; i++)
+        for (let j = i + 1; j < arr.length; j++) { link(arr[i], arr[j]); link(arr[j], arr[i]); }
+    return { priorTutors, priorMates };
+  }
+
+  // This unit's group slots, with parsed co-tutors and a capacity (min of tutor caps, default 6).
+  function groupsForUnit(wb, unit, tutorsById) {
+    return (wb.Groups || []).filter(g => norm(g.Unit) === unit).map((g) => {
+      const tutors = splitIds(g.TutorIDs);
+      const caps = tutors.map(t => { const tt = tutorsById.get(t); const n = tt ? Number(tt.MaxStudents) : NaN;
+                                     return isFinite(n) && n > 0 ? n : 6; });
+      return { GroupID: norm(g.GroupID), TimeSlot: norm(g.TimeSlot), tutors,
+               capacity: caps.length ? Math.min(...caps) : 6 };
+    });
+  }
+
+  // Schedule fit (spec §3.4, open question §7.5): `Exception:<Day>-AM/PM` binds the student
+  // to a group whose TimeSlot matches that AM/PM; other tags (Imi Hoʻōla GA, HOME Project
+  // Manager, custom) are treated as informational, not a hard constraint. Easy to tighten here.
+  function scheduleFits(student, group) {
+    const tag = norm(student.ScheduleTag);
+    if (!tag) return true;
+    const m = /^exception:\w+-(AM|PM)$/i.exec(tag);
+    if (m) return up(group.TimeSlot) === m[1].toUpperCase();
+    return true;
+  }
+
+  // Placement-independent hard checks (don't depend on who else is in the group).
+  // Returns null if OK, else { rule, detail }.
+  function staticViolation(student, group, idx) {
+    const sid = norm(student.StudentID);
+    const lc = norm(student.LCMentorID);
+    if (lc && group.tutors.includes(lc)) return { rule: 'LC mentor ≠ tutor', detail: `group tutor is ${sid}'s LC mentor (${lc})` };
+    for (const t of group.tutors) if (idx.tsConf.has(t + '|' + sid)) return { rule: 'Tutor–student conflict', detail: `conflicts with tutor ${t}` };
+    const pt = idx.prior.priorTutors.get(sid);
+    if (pt) for (const t of group.tutors) if (pt.has(t)) return { rule: 'No repeat tutor', detail: `had tutor ${t} in a prior unit` };
+    if (!scheduleFits(student, group)) return { rule: 'Schedule fit', detail: `schedule ${norm(student.ScheduleTag)} can't use ${group.GroupID} (${group.TimeSlot})` };
+    return null;
+  }
+  // Student–student conflict with the current members of a group.
+  function memberConflict(sid, members, idx) {
+    for (const m of members) if (idx.ssConf.has(pairKey(sid, m))) return m;
+    return null;
+  }
+
+  // Soft-penalty metrics for a full assignment (lower is better).
+  function metricsOf(assign, groups, idx) {
+    const all = [...idx.studentsById.values()];
+    const fFrac = all.length ? all.filter(s => up(s.Gender) === 'F').length / all.length : 0;
+    let imiOver = 0, repeatPairs = 0, genderImb = 0;
+    const nonResCounts = [];
+    assign.forEach((members) => {
+      let imi = 0, nonres = 0, fem = 0;
+      for (const sid of members) {
+        const s = idx.studentsById.get(sid); if (!s) continue;
+        if (up(s.Imi) === 'Y') imi++;
+        if (up(s.Resident) === 'N') nonres++;
+        if (up(s.Gender) === 'F') fem++;
+      }
+      imiOver += Math.max(0, imi - 1);
+      nonResCounts.push(nonres);
+      genderImb += Math.abs(fem - fFrac * members.length);
+      for (let i = 0; i < members.length; i++)
+        for (let j = i + 1; j < members.length; j++) {
+          const pm = idx.prior.priorMates.get(members[i]);
+          if (pm && pm.has(members[j])) repeatPairs++;
+        }
+    });
+    const totalNon = nonResCounts.reduce((a, b) => a + b, 0);
+    const even = groups.length ? Math.ceil(totalNon / groups.length) : 0;
+    const nonResSpread = nonResCounts.reduce((a, c) => a + Math.max(0, c - even), 0);
+    return { imiOver, nonResSpread, genderImb: Math.round(genderImb * 10) / 10, repeatPairs };
+  }
+  function penaltyOf(m, w) {
+    return w.imi * m.imiOver + w.nonres * m.nonResSpread + w.gender * m.genderImb + w.repeat * m.repeatPairs;
+  }
+
+  // Greedy seed: place most-constrained students (fewest legal groups) first.
+  function seed(students, groups, idx, rng) {
+    const assign = groups.map(() => []);
+    const dom = new Map();
+    for (const s of students) {
+      const sid = norm(s.StudentID);
+      const d = []; groups.forEach((g, gi) => { if (!staticViolation(s, g, idx)) d.push(gi); });
+      dom.set(sid, d);
+    }
+    const order = students.map(s => norm(s.StudentID))
+      .sort((a, b) => (dom.get(a).length - dom.get(b).length) || (rng() - 0.5));
+    const violations = [];
+    for (const sid of order) {
+      const s = idx.studentsById.get(sid);
+      const cands = dom.get(sid).filter(gi => assign[gi].length < groups[gi].capacity && !memberConflict(sid, assign[gi], idx));
+      if (cands.length) {
+        cands.sort((a, b) => (assign[a].length - assign[b].length) || (rng() - 0.5)); // load-balance
+        assign[cands[0]].push(sid);
+      } else {
+        const lb = leastBad(sid, s, assign, groups, idx);
+        assign[lb.gi].push(sid);
+        violations.push({ studentId: sid, groupId: groups[lb.gi].GroupID, rule: lb.rule, detail: lb.detail });
+      }
+    }
+    return { assign, violations };
+  }
+  // When no legal group exists, choose the group breaking the fewest hard rules.
+  function leastBad(sid, s, assign, groups, idx) {
+    let best = { gi: 0, cost: Infinity, rule: 'Capacity', detail: 'all groups full' };
+    groups.forEach((g, gi) => {
+      const sv = staticViolation(s, g, idx);
+      const mc = memberConflict(sid, assign[gi], idx);
+      const over = assign[gi].length >= g.capacity;
+      const cost = (sv ? 1 : 0) + (mc ? 1 : 0) + (over ? 1 : 0);
+      if (cost < best.cost) {
+        let rule = 'Capacity', detail = 'group over capacity';
+        if (sv) { rule = sv.rule; detail = sv.detail; }
+        else if (mc) { rule = 'Student–student conflict'; detail = `conflicts with ${mc}`; }
+        best = { gi, cost, rule, detail };
+      }
+    });
+    return best;
+  }
+
+  // Hill-climbing local search: random moves/swaps that preserve all hard constraints
+  // and lower total soft penalty; snapshot-and-revert on reject. Keep the best seen.
+  function optimize(seedAssign, groups, idx, w, rng, iters) {
+    let assign = seedAssign.map(a => a.slice());
+    let cur = penaltyOf(metricsOf(assign, groups, idx), w);
+    let best = assign.map(a => a.slice()), bestP = cur;
+    for (let it = 0; it < iters; it++) {
+      const gi = Math.floor(rng() * groups.length);
+      if (!assign[gi].length) continue;
+      const gj = Math.floor(rng() * groups.length);
+      if (gj === gi) continue;
+      const si = Math.floor(rng() * assign[gi].length);
+      const sid = assign[gi][si];
+      const s = idx.studentsById.get(sid);
+      const snap = assign.map(a => a.slice());
+      let moved = false;
+      if (assign[gj].length < groups[gj].capacity && !staticViolation(s, groups[gj], idx) && !memberConflict(sid, assign[gj], idx)) {
+        assign[gi].splice(si, 1); assign[gj].push(sid); moved = true;
+      } else if (assign[gj].length) {
+        const sj = Math.floor(rng() * assign[gj].length);
+        const oid = assign[gj][sj], o = idx.studentsById.get(oid);
+        const gjOthers = assign[gj].filter((_, k) => k !== sj);
+        const giOthers = assign[gi].filter((_, k) => k !== si);
+        if (!staticViolation(s, groups[gj], idx) && !staticViolation(o, groups[gi], idx) &&
+            !memberConflict(sid, gjOthers, idx) && !memberConflict(oid, giOthers, idx)) {
+          assign[gi][si] = oid; assign[gj][sj] = sid; moved = true;
+        }
+      }
+      if (!moved) continue;
+      const p = penaltyOf(metricsOf(assign, groups, idx), w);
+      if (p <= cur) { cur = p; if (p < bestP) { bestP = p; best = assign.map(a => a.slice()); } }
+      else assign = snap;
+    }
+    return { assign: best, penalty: bestP };
+  }
+
+  // Re-scan a finished assignment and tally any remaining hard-rule breaks per rule.
+  function verifyHard(outGroups, idx) {
+    const tally = { 'Tutor–student conflict': 0, 'Student–student conflict': 0, 'No repeat tutor': 0, 'Schedule fit': 0, 'LC mentor ≠ tutor': 0 };
+    outGroups.forEach(g => {
+      const group = { GroupID: g.GroupID, TimeSlot: g.TimeSlot, tutors: g.tutors, capacity: g.capacity };
+      g.students.forEach((sid, i) => {
+        const s = idx.studentsById.get(sid); if (!s) return;
+        const sv = staticViolation(s, group, idx);
+        if (sv && tally[sv.rule] != null) tally[sv.rule]++;
+        for (let j = i + 1; j < g.students.length; j++)
+          if (idx.ssConf.has(pairKey(sid, g.students[j]))) tally['Student–student conflict']++;
+      });
+    });
+    return Object.entries(tally).map(([rule, n]) => ({ rule, ok: n === 0, violations: n }));
+  }
+
+  // Top-level solve: many seeded restarts, keep the run with fewest hard relaxations then lowest penalty.
+  function solve(wb, unit, weights) {
+    const idx = buildIndex(wb);
+    idx.prior = priorData(idx.history, unit);
+    const groups = groupsForUnit(wb, unit, idx.tutorsById);
+    const students = (wb.Students || []).filter(s => norm(s.StudentID));
+    const w = weights || defaultWeights();
+    if (!groups.length)
+      return { unit, groups: [], violations: [], capacityShortfall: students.length,
+               scorecard: null, error: `No groups are defined for ${unit}. Add rows to the Groups sheet for this unit.` };
+
+    const totalCap = groups.reduce((a, g) => a + g.capacity, 0);
+    let bestRun = null;
+    const RESTARTS = 12;
+    for (let r = 0; r < RESTARTS; r++) {
+      const rng = mulberry32(0x9E3779B9 ^ (r * 2654435761));
+      const { assign, violations } = seed(students, groups, idx, rng);
+      const opt = optimize(assign, groups, idx, w, rng, 3000);
+      const score = penaltyOf(metricsOf(opt.assign, groups, idx), w);
+      if (!bestRun || violations.length < bestRun.violations.length ||
+          (violations.length === bestRun.violations.length && score < bestRun.score))
+        bestRun = { assign: opt.assign, violations, score };
+    }
+    const outGroups = groups.map((g, gi) => ({ GroupID: g.GroupID, TimeSlot: g.TimeSlot, tutors: g.tutors,
+                                               capacity: g.capacity, students: bestRun.assign[gi].slice() }));
+    const metrics = metricsOf(bestRun.assign, groups, idx);
+    return { unit, groups: outGroups, violations: bestRun.violations,
+             capacityShortfall: Math.max(0, students.length - totalCap),
+             scorecard: { hard: verifyHard(outGroups, idx), soft: { ...metrics, totalPenalty: bestRun.score } } };
+  }
+  let lastResult = null;
+
+  // ---- Solver UI ---------------------------------------------------------
+  function renderSolverControls() {
+    const units = [...new Set((workbook.Groups || []).map(g => norm(g.Unit)).filter(Boolean))]
+      .sort((a, b) => UNITS.indexOf(a) - UNITS.indexOf(b));
+    $('unitSel').innerHTML = units.length
+      ? units.map(u => `<option value="${escapeAttr(u)}">${escapeHtml(u)}</option>`).join('')
+      : `<option value="">(no rows in Groups sheet)</option>`;
+    if (!$('weights').dataset.built) {
+      $('weights').innerHTML = SOFT.map(s =>
+        `<div class="wrow"><span class="wlab">${escapeHtml(s.label)} <b id="wv_${s.key}">${s.def}</b></span>` +
+        `<input type="range" min="0" max="20" value="${s.def}" id="w_${s.key}" data-k="${s.key}"></div>`).join('');
+      $('weights').dataset.built = '1';
+      $('weights').oninput = (e) => { const k = e.target.dataset.k; if (k) $('wv_' + k).textContent = e.target.value; };
+    }
+    $('solver').classList.remove('hidden');
+  }
+  function getWeights() {
+    const w = {}; SOFT.forEach(s => { const el = $('w_' + s.key); w[s.key] = el ? Number(el.value) : s.def; });
+    return w;
+  }
+
+  function renderResult(res) {
+    const sc = $('scorecard'), board = $('board');
+    if (res.error) { sc.innerHTML = `<div class="issue err">${escapeHtml(res.error)}</div>`; board.innerHTML = ''; return; }
+
+    const students = new Map((workbook.Students || []).map(s => [norm(s.StudentID), s]));
+    const tutors = new Map((workbook.Tutors || []).map(t => [norm(t.TutorID), norm(t.Name) || norm(t.TutorID)]));
+    const nameOf = (id) => { const s = students.get(id); return s ? (norm(s.Name) || id) : id; };
+
+    const hard = res.scorecard.hard.map(h =>
+      `<span class="pill ${h.ok ? 'ok' : 'err'}">${h.ok ? '✓' : '✗'} ${escapeHtml(h.rule)}${h.ok ? '' : ` (${h.violations})`}</span>`).join('');
+    const m = res.scorecard.soft;
+    const soft = [
+      ['Imi Hoʻōla students doubled-up', m.imiOver],
+      ['Non-residents over even share', m.nonResSpread],
+      ['Gender imbalance', m.genderImb],
+      ['Repeat groupmate pairs', m.repeatPairs],
+      ['Total penalty', m.totalPenalty],
+    ].map(([k, v]) => `<span>${escapeHtml(k)}: <b>${v}</b></span>`).join('');
+    sc.innerHTML =
+      `<div class="sc-hard">${hard}</div><div class="sc-soft">${soft}</div>` +
+      (res.violations.length
+        ? `<div class="issue err" style="margin-top:.6rem"><b>${res.violations.length} hard rule(s) had to be relaxed:</b> ` +
+          res.violations.map(v => `${escapeHtml(nameOf(v.studentId))} in ${escapeHtml(v.groupId)} — ${escapeHtml(v.rule)} (${escapeHtml(v.detail)})`).join('; ') +
+          `. Fix the input (add a tutor, resolve a conflict) and re-solve.</div>`
+        : `<div class="issue" style="margin-top:.6rem;background:var(--accent-bg);border-left:3px solid var(--ok)">All hard rules satisfied.</div>`) +
+      (res.capacityShortfall
+        ? `<div class="issue warn" style="margin-top:.4rem">${res.capacityShortfall} more student(s) than total seats — add a group or raise a tutor's Max Students.</div>` : '');
+
+    board.className = 'board';
+    board.innerHTML = res.groups.map(g => {
+      const tnames = g.tutors.map(t => tutors.get(t) || t).join(', ') || '—';
+      const chips = g.students.map(sid => {
+        const s = students.get(sid) || {};
+        const tags = [up(s.Imi) === 'Y' ? 'Imi Hoʻōla' : '', up(s.Resident) === 'N' ? 'Non-resident' : '',
+                      genderLabel(s.Gender), norm(s.ScheduleTag) ? tagLabel(s.ScheduleTag) : ''].filter(Boolean).join(' · ');
+        return `<div class="chip"><div class="cname">${escapeHtml(norm(s.Name) || sid)}</div>${tags ? `<div class="ctags">${escapeHtml(tags)}</div>` : ''}</div>`;
+      }).join('') || `<div class="hint" style="margin:0">no students</div>`;
+      const over = g.students.length > g.capacity;
+      return `<div class="gcol${over ? ' over' : ''}"><div class="ghead">` +
+        `<div class="gid">${escapeHtml(g.GroupID)}</div>` +
+        `<div class="gmeta">${escapeHtml(g.TimeSlot || '—')} · seats ${g.capacity}</div>` +
+        `<div class="gtutors">${escapeHtml(tnames)}</div></div>` +
+        `<div class="gbody">${chips}</div><div class="gcount">${g.students.length} / ${g.capacity}</div></div>`;
+    }).join('');
+  }
+
   // ---- Workbook build / export -------------------------------------------
   function buildWorkbook(data) {
     const wb = XLSX.utils.book_new();
@@ -555,6 +959,8 @@
     renderValidation(res);
     renderTabs();
     renderSheet();
+    renderSolverControls();
+    $('scorecard').innerHTML = ''; $('board').innerHTML = ''; lastResult = null;
     $('btnExport').disabled = false;
     if (label) $('loadedName').textContent = label;
   }
@@ -602,9 +1008,27 @@
       wb[match] = rows;                       // replace the matched sheet (other sheets kept)
       $('pasteText').value = '';
       $('pastePanel').classList.add('hidden');
-      loadWorkbook(wb, `Pasted ${rows.length} row(s) → ${match}`, match);
+      loadWorkbook(wb, `Pasted ${rows.length} row(s) into ${sheetLabel(match)}`, match);
     } catch (err) {
       $('pasteMsg').textContent = 'Could not parse pasted data: ' + err.message;
+      console.error(err);
+    }
+  };
+
+  // ---- Solve -------------------------------------------------------------
+  $('btnSolve').onclick = () => {
+    if (!workbook) return;
+    const res = validate(workbook);
+    if (res.errors.length) {
+      $('scorecard').innerHTML = `<div class="issue err">Fix the ${res.errors.length} data error(s) above before solving.</div>`;
+      $('board').innerHTML = '';
+      return;
+    }
+    try {
+      lastResult = solve(workbook, $('unitSel').value, getWeights());
+      renderResult(lastResult);
+    } catch (err) {
+      $('scorecard').innerHTML = `<div class="issue err">Solve failed: ${escapeHtml(err.message)}</div>`;
       console.error(err);
     }
   };

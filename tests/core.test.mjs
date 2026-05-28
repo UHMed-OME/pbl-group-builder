@@ -25,7 +25,7 @@ assert.ok(XLSX && XLSX.utils, 'SheetJS failed to load');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const m = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/i);
 assert.ok(m, 'could not locate the app <script> block');
-const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, TEMPLATE, SCHEMA, SHEET_ORDER };';
+const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, solve, defaultWeights, TEMPLATE, SCHEMA, SHEET_ORDER };';
 
 // 3. Minimal stubs for the DOM/browser globals referenced at load time.
 const stubEl = () => new Proxy({}, {
@@ -89,5 +89,33 @@ assert.equal(pasted.rows[0].Name, 'Gil Bladder', 'pasted cell value parsed');
 const csv = 'TutorID,Name,Availability,MaxStudents,CoTutorOK\nT09,Dr. Polly Mer,AM,6,Y';
 assert.equal(app.parsePasted(csv).match, 'Tutors', 'comma-delimited paste should match the Tutors sheet');
 console.log('✓ pasted rows parse and match the right sheet');
+
+// --- Test 4: solver places everyone with no hard-rule violations ----------
+const sol = app.solve(app.TEMPLATE, 'MD1', app.defaultWeights());
+const placed = sol.groups.reduce((n, g) => n + g.students.length, 0);
+assert.equal(placed, app.TEMPLATE.Students.length, 'every student is placed in some group');
+assert.equal(sol.violations.length, 0, 'example data solves with 0 relaxed hard rules, got: ' +
+  JSON.stringify(sol.violations));
+assert.ok(sol.scorecard.hard.every(h => h.ok), 'scorecard reports all hard constraints satisfied');
+// No student appears in two groups.
+const seen = new Set();
+sol.groups.forEach(g => g.students.forEach(id => { assert.ok(!seen.has(id), 'no duplicate placement'); seen.add(id); }));
+// Spot-check specific hard rules on the produced assignment:
+const groupOf = id => sol.groups.find(g => g.students.includes(id));
+assert.notEqual(groupOf('AB01').GroupID, groupOf('CD02').GroupID, 'student–student conflict AB01/CD02 kept apart');
+assert.ok(!groupOf('IJ05').tutors.includes('T01'), 'IJ05 not tutored by their LC mentor T01');
+assert.equal(groupOf('IJ05').TimeSlot.toUpperCase(), 'AM', 'IJ05 Exception:Tue-AM lands in an AM slot');
+assert.ok(!groupOf('EF03').tutors.includes('T02'), 'tutor–student conflict T02/EF03 respected');
+console.log(`✓ solver placed all ${placed} students, 0 violations, hard rules verified`);
+
+// --- Test 5: over-constrained input is flagged, not silently fudged -------
+const tight = JSON.parse(JSON.stringify(app.TEMPLATE));
+// Force EF03 into an impossible spot: only one AM group, tutored by their own conflict tutor.
+tight.Groups = [{ Unit:'MD1', GroupID:'G1', TimeSlot:'AM', TutorIDs:'T02' }];
+tight.Students = tight.Students.map(s => s.StudentID === 'EF03'
+  ? { ...s, ScheduleTag:'Exception:Tue-AM' } : s);
+const tightSol = app.solve(tight, 'MD1', app.defaultWeights());
+assert.ok(tightSol.violations.length > 0, 'over-constrained input surfaces at least one relaxed hard rule');
+console.log(`✓ over-constrained input flagged ${tightSol.violations.length} relaxed rule(s) instead of hiding them`);
 
 console.log('\nALL TESTS PASSED');

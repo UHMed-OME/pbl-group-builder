@@ -17,8 +17,22 @@ if (!html.includes(tag)) {
 }
 
 // Guard against an accidental </script> inside the library text breaking the tag.
+// NOTE: pass a *function* to replace() so `$&`/`$'`/`$\`` sequences inside the minified
+// library are inserted verbatim, not treated as special replacement patterns (which would
+// silently corrupt SheetJS's own .replace() calls).
 const safeLib = lib.replace(/<\/script>/gi, '<\\/script>');
-const inlined = html.replace(tag, `<script>\n${safeLib}\n</script>`);
+let inlined = html.replace(tag, () => `<script>\n${safeLib}\n</script>`);
+
+// Inline the logo as a data URI so the single file stays self-contained offline.
+// (index.html references it relatively, which works on Pages / via file://.)
+const logoRef = 'src="vendor/jabsom-logo.svg"';
+if (inlined.includes(logoRef)) {
+  const svg = readFileSync('vendor/jabsom-logo.svg', 'utf8');
+  const dataUri = 'data:image/svg+xml;base64,' + Buffer.from(svg, 'utf8').toString('base64');
+  inlined = inlined.replace(logoRef, () => `src="${dataUri}"`);
+} else {
+  console.warn('Note: logo <img src="vendor/jabsom-logo.svg"> not found — skipping logo inline.');
+}
 
 mkdirSync('dist', { recursive: true });
 writeFileSync('dist/pbl-group-builder.html', inlined);
