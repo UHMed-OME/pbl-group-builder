@@ -49,7 +49,7 @@ A tool for JABSOM (medical school) Problem-Based Learning group assignment. The 
 ## Workbook schema (the data contract)
 
 Sheets and key columns — see spec §2 for full column lists:
-- **`Students`** — `StudentID` (stable key used everywhere instead of name), `Name`, `Gender`, `Imi` (Y/N), `Resident` (Y/N), `LCMentorID`, `ScheduleTag`.
+- **`Students`** — `StudentID` (stable key used everywhere instead of name), `Name`, `Gender`, `Imi` (Y/N), `Resident` (Y/N), `LCMentorID`, `ScheduleTag`, `Cohort` (class/cohort label, e.g. "Class of 2028"). **`Cohort`** is an addition beyond spec §2: `solve(wb, unit, weights, locks, cohort)` filters students **and** group slots to one class; the Build step shows a cohort picker only when >1 class is present. `Groups` also carries `Cohort`.
 - **`Tutors`** — `TutorID`, `Name`, `Availability`, `MaxStudents` (default 6), `CoTutorOK`.
 - **`Conflicts`** — `TypeA_ID`, `TypeB_ID`, `Kind` (`student-student` | `tutor-student`), `Reason`.
 - **`Groups`** — `Unit`, `GroupID`, `TimeSlot`, `TutorIDs` — defines this unit's slots. (Spec §2 writes the column as `TutorID(s)`; the literal header in code is `TutorIDs`, and it holds a comma/semicolon/slash-separated list — `splitIds()` parses it for co-tutors.)

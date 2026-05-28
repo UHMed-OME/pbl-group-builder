@@ -309,6 +309,7 @@
       <div id="solver">
         <p class="section-sub">Pick the unit and Solve. Then drag students between groups to adjust — a red chip breaks a hard rule. Lock anyone and re-solve.</p>
         <div class="solvebar">
+          <label id="cohortField" hidden>Class&nbsp; <select id="cohortSel"></select></label>
           <label>Unit&nbsp; <select id="unitSel"></select></label>
           <button id="btnSolve" class="primary"><svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg> Solve groups</button>
           <details class="weights">
@@ -380,13 +381,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // Each sheet lists required columns; validation keys off these.
   const SCHEMA = {
     Students: { key: 'StudentID',
-      required: ['StudentID', 'Name', 'Gender', 'Imi', 'Resident', 'LCMentorID', 'ScheduleTag'] },
+      required: ['StudentID', 'Name', 'Gender', 'Imi', 'Resident', 'LCMentorID', 'ScheduleTag', 'Cohort'] },
     Tutors:   { key: 'TutorID',
       required: ['TutorID', 'Name', 'Availability', 'MaxStudents', 'CoTutorOK'] },
     Conflicts:{ key: null,
       required: ['TypeA_ID', 'TypeB_ID', 'Kind', 'Reason'] },
     Groups:   { key: null,
-      required: ['Unit', 'GroupID', 'TimeSlot', 'TutorIDs'] },
+      required: ['Unit', 'GroupID', 'TimeSlot', 'TutorIDs', 'Cohort'] },
     // NOTE: Excel reserves the worksheet name "History" (change-tracking),
     // so the spec's "History" sheet is stored as "PBLHistory" — same columns.
     PBLHistory: { key: null,
@@ -429,7 +430,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     ScheduleTag: 'Schedule', Availability: 'Availability', MaxStudents: 'Max Students',
     CoTutorOK: 'Co-Tutor OK', TypeA_ID: 'Person A', TypeB_ID: 'Person B',
     Kind: 'Conflict Type', Reason: 'Reason', Unit: 'Unit', GroupID: 'Group',
-    TimeSlot: 'Time Slot', TutorIDs: 'Tutor(s)',
+    TimeSlot: 'Time Slot', TutorIDs: 'Tutor(s)', Cohort: 'Class / Cohort',
   };
   const FULL_DAYS = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
   const TAG_LABELS = { '': '— none —', ImiGA: 'Imi Hoʻōla GA', HOMEmgr: 'HOME Project Manager' };
@@ -502,12 +503,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // and the data is constructed so the solver finds a clean (0-violation) assignment.
   const TEMPLATE = {
     Students: [
-      { StudentID:'AB01', Name:'Anna Tomy',    Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'' },
-      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'' },
-      { StudentID:'EF03', Name:'Sara Tonin',   Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'' },
-      { StudentID:'GH04', Name:'Gil Bladder',  Gender:'M', Imi:'N', Resident:'Y', LCMentorID:'T03', ScheduleTag:'' },
-      { StudentID:'IJ05', Name:'Vena Cava',    Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM' },
-      { StudentID:'KL06', Name:'Otto Immune',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T03', ScheduleTag:'ImiGA' },
+      { StudentID:'AB01', Name:'Anna Tomy',    Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'T01', ScheduleTag:'',                Cohort:'Class of 2028' },
+      { StudentID:'CD02', Name:'Hema Globin',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T02', ScheduleTag:'',                Cohort:'Class of 2028' },
+      { StudentID:'EF03', Name:'Sara Tonin',   Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'',                Cohort:'Class of 2028' },
+      { StudentID:'GH04', Name:'Gil Bladder',  Gender:'M', Imi:'N', Resident:'Y', LCMentorID:'T03', ScheduleTag:'',                Cohort:'Class of 2028' },
+      { StudentID:'IJ05', Name:'Vena Cava',    Gender:'F', Imi:'N', Resident:'N', LCMentorID:'T01', ScheduleTag:'Exception:Tue-AM', Cohort:'Class of 2028' },
+      { StudentID:'KL06', Name:'Otto Immune',  Gender:'M', Imi:'Y', Resident:'Y', LCMentorID:'T03', ScheduleTag:'ImiGA',           Cohort:'Class of 2028' },
     ],
     Tutors: [
       { TutorID:'T01', Name:'Dr. Cara Diak',     Availability:'AM,PM', MaxStudents:6, CoTutorOK:'Y' },
@@ -519,8 +520,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       { TypeA_ID:'T02',  TypeB_ID:'EF03', Kind:'tutor-student',   Reason:'family' },
     ],
     Groups: [
-      { Unit:'MD1', GroupID:'G1', TimeSlot:'AM', TutorIDs:'T02' },
-      { Unit:'MD1', GroupID:'G2', TimeSlot:'PM', TutorIDs:'T03' },
+      { Unit:'MD1', GroupID:'G1', TimeSlot:'AM', TutorIDs:'T02', Cohort:'Class of 2028' },
+      { Unit:'MD1', GroupID:'G2', TimeSlot:'PM', TutorIDs:'T03', Cohort:'Class of 2028' },
     ],
     PBLHistory: [
       { Unit:'MD1', StudentID:'AB01', GroupID:'G1', TutorID:'T02' },
@@ -541,6 +542,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const sid = n => 'S' + String(n).padStart(2, '0');
     const gid = n => 'G' + n;
 
+    const COHORT = 'Class of 2028';
     const Tutors = [];
     for (let t = 1; t <= G; t++)
       Tutors.push({ TutorID: tid(t), Name: `Dr. ${firsts[(t * 3) % firsts.length]} ${lasts[(t * 5) % lasts.length]}`,
@@ -548,7 +550,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     // This unit's slots (MD2): groups alternate AM/PM, tutor g covers group g.
     const Groups = [];
     for (let g = 1; g <= G; g++)
-      Groups.push({ Unit: 'MD2', GroupID: gid(g), TimeSlot: g % 2 ? 'AM' : 'PM', TutorIDs: tid(g) });
+      Groups.push({ Unit: 'MD2', GroupID: gid(g), TimeSlot: g % 2 ? 'AM' : 'PM', TutorIDs: tid(g), Cohort: COHORT });
 
     const Students = [], PBLHistory = [];
     for (let i = 0; i < N; i++) {
@@ -563,6 +565,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         Resident: i % 4 === 0 ? 'N' : 'Y',
         LCMentorID: tid((i % G) + 1),
         ScheduleTag: tag,
+        Cohort: COHORT,
       });
       // Prior unit (MD1): a different tutor than their LC mentor, to drive repeat-avoidance.
       PBLHistory.push({ Unit: 'MD1', StudentID: id, GroupID: gid(((i + 5) % G) + 1), TutorID: tid(((i + 5) % G) + 1) });
@@ -814,6 +817,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           `<option value="${CUSTOM_TAG}">Custom…</option>`;
         return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
       }
+      if (c === 'Cohort') {
+        // Pick from the cohorts already in the workbook, or add a new one via Custom…
+        const known = [...new Set((workbook.Students || []).map(s => norm(s.Cohort)).filter(Boolean))].sort();
+        if (v && !known.includes(v)) known.push(v);
+        const opts = `<option value=""${v === '' ? ' selected' : ''}>— choose —</option>` +
+          known.map(x => `<option value="${escapeAttr(x)}"${x === v ? ' selected' : ''}>${escapeHtml(x)}</option>`).join('') +
+          `<option value="${CUSTOM_TAG}">Custom…</option>`;
+        return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
+      }
       const fk = (FIELD_KINDS[sheet] || {})[c];
       if (fk && fk.enum) return pickCell(i, c, enumOptions(fk.enum, v));
       if (fk && fk.ref)  return pickCell(i, c, refOptions(fk.ref, v));
@@ -959,9 +971,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return { priorTutors, priorMates };
   }
 
-  // This unit's group slots, with parsed co-tutors and a capacity (min of tutor caps, default 6).
-  function groupsForUnit(wb, unit, tutorsById) {
-    return (wb.Groups || []).filter(g => norm(g.Unit) === unit).map((g) => {
+  // This unit's group slots (optionally scoped to one cohort), with parsed co-tutors and a
+  // capacity (min of tutor caps, default 6).
+  function groupsForUnit(wb, unit, tutorsById, cohort) {
+    const co = norm(cohort);
+    return (wb.Groups || []).filter(g => norm(g.Unit) === unit && (!co || norm(g.Cohort) === co)).map((g) => {
       const tutors = splitIds(g.TutorIDs);
       const caps = tutors.map(t => { const tt = tutorsById.get(t); const n = tt ? Number(tt.MaxStudents) : NaN;
                                      return isFinite(n) && n > 0 ? n : 6; });
@@ -1138,15 +1152,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   // Top-level solve: many seeded restarts, keep the run with fewest hard relaxations then lowest penalty.
   // `locks` (optional Map studentId -> GroupID) pins students to a group across the re-solve.
-  function solve(wb, unit, weights, locks) {
+  // `cohort` (optional) restricts to one class: only its students and its group slots.
+  function solve(wb, unit, weights, locks, cohort) {
+    const co = norm(cohort);
     const idx = buildIndex(wb);
     idx.prior = priorData(idx.history, unit);
-    const groups = groupsForUnit(wb, unit, idx.tutorsById);
-    const students = (wb.Students || []).filter(s => norm(s.StudentID));
+    const groups = groupsForUnit(wb, unit, idx.tutorsById, co);
+    let students = (wb.Students || []).filter(s => norm(s.StudentID));
+    if (co) students = students.filter(s => norm(s.Cohort) === co);
     const w = weights || defaultWeights();
     if (!groups.length)
-      return { unit, groups: [], violations: [], capacityShortfall: students.length,
-               scorecard: null, error: `No groups are defined for ${unit}. Add rows to the Groups sheet for this unit.` };
+      return { unit, cohort: co, groups: [], violations: [], capacityShortfall: students.length,
+               scorecard: null, error: `No groups are defined for ${unit}${co ? ` / ${co}` : ''}. Add rows to the Groups sheet.` };
 
     // Resolve lock GroupIDs to indices for this unit's groups.
     const gidIndex = new Map(groups.map((g, gi) => [g.GroupID, gi]));
@@ -1169,7 +1186,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const outGroups = groups.map((g, gi) => ({ GroupID: g.GroupID, TimeSlot: g.TimeSlot, tutors: g.tutors,
                                                capacity: g.capacity, students: bestRun.assign[gi].slice() }));
     const metrics = metricsOf(bestRun.assign, groups, idx);
-    return { unit, groups: outGroups, violations: bestRun.violations,
+    return { unit, cohort: co, groups: outGroups, violations: bestRun.violations,
              capacityShortfall: Math.max(0, students.length - totalCap),
              scorecard: { hard: verifyHard(outGroups, idx), soft: { ...metrics, totalPenalty: bestRun.score } } };
   }
@@ -1183,6 +1200,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     $('unitSel').innerHTML = units.length
       ? units.map(u => `<option value="${escapeAttr(u)}">${escapeHtml(u)}</option>`).join('')
       : `<option value="">(no rows in Groups sheet)</option>`;
+    // Cohort picker — only shown when more than one class is present.
+    const cohorts = [...new Set((workbook.Students || []).map(s => norm(s.Cohort)).filter(Boolean))].sort();
+    $('cohortField').hidden = cohorts.length < 2;
+    $('cohortSel').innerHTML = cohorts.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
     if (!$('weights').dataset.built) {
       $('weights').innerHTML = SOFT.map(s =>
         `<div class="wrow"><span class="wlab">${escapeHtml(s.label)} <b id="wv_${s.key}">${s.def}</b></span>` +
@@ -1319,7 +1340,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           history.push({ Unit: unit, StudentID: sid, GroupID: g.GroupID, TutorID: t }));
       });
     });
-    const mergedHistory = (wb.PBLHistory || []).filter(r => norm(r.Unit) !== unit).concat(history);
+    // Replace only this unit's rows for the students we just placed (so solving one cohort's
+    // unit doesn't wipe another cohort's same-unit history); then append the fresh rows.
+    const placed = new Set(result.groups.flatMap(g => g.students));
+    const mergedHistory = (wb.PBLHistory || [])
+      .filter(r => !(norm(r.Unit) === unit && placed.has(norm(r.StudentID)))).concat(history);
     return { results, history: mergedHistory };
   }
   const RESULTS_COLS = ['Unit', 'GroupID', 'TimeSlot', 'TutorIDs', 'TutorNames', 'StudentID', 'StudentName'];
@@ -1498,7 +1523,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return;
     }
     try {
-      lastResult = solve(workbook, $('unitSel').value, getWeights(), locks);
+      const cohort = $('cohortField').hidden ? '' : $('cohortSel').value;
+      lastResult = solve(workbook, $('unitSel').value, getWeights(), locks, cohort);
       renderResult(lastResult);
     } catch (err) {
       $('scorecard').innerHTML = `<div class="issue err">Solve failed: ${escapeHtml(err.message)}</div>`;
