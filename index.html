@@ -30,7 +30,9 @@
     }
     /* Accessibility baseline: visible keyboard focus, respect reduced motion. */
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-    .apptab:focus-visible, .iconbtn:focus-visible { outline-offset: -2px; }
+    .iconbtn:focus-visible { outline-offset: -2px; }
+    /* Tabs are flat, not buttons: square, inset focus that follows the tab edge. */
+    .apptab:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; border-radius: 0; }
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
     }
@@ -56,8 +58,8 @@
     .masthead { min-width: 0; }
     h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.01em; font-weight: 700; color: var(--brand-dark); }
     .tag { color: var(--muted); margin: 0.15rem 0 0; font-size: 0.9rem; }
-    /* Icon transport bar (header, right side) */
-    .transport { margin-left: auto; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+    /* Icon transport bar (now lives in the tab row, right side) */
+    .transport { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
     .iconbtn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
       font-size: 1.15rem; padding: 0; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
       border-radius: 8px; cursor: pointer; line-height: 1; }
@@ -74,7 +76,9 @@
       border-bottom: 3px solid transparent; }
     .apptab:hover { color: var(--fg); }
     .apptab.active { color: var(--brand-dark); border-bottom-color: var(--brand); }
-    .apptabs #loadedName { margin-left: auto; min-width: 0; max-width: 55%;
+    .apptab-group { display: flex; gap: 0.3rem; }
+    .apptabs-right { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .apptabs-right #loadedName { min-width: 0; max-width: 38vw;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     main { padding: 1.25rem 1.75rem 4rem; }
     /* Inline SVG icons sit on the text baseline; sized uniformly. */
@@ -110,6 +114,11 @@
     .issue.err { background: var(--err-bg); border-left: 3px solid var(--err); }
     .issue.warn { background: var(--warn-bg); border-left: 3px solid var(--warn); }
     .issue .loc { font-weight: 600; }
+    button.loclink { font: inherit; font-weight: 600; color: var(--accent); background: none; border: none;
+      padding: 0; cursor: pointer; text-decoration: underline; }
+    button.loclink:hover { color: var(--brand-dark); }
+    @keyframes rowflash { 0%, 100% { background: transparent; } 30% { background: rgba(240,179,35,0.35); } }
+    tbody tr.flash td { animation: rowflash 1.4s ease-out; }
     .tabs { display: flex; gap: 0.3rem; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-top: 0.5rem; }
     .tab {
       padding: 0.55rem 1rem; border: 1px solid transparent; border-bottom: none;
@@ -230,7 +239,10 @@
     .chip.warn { border-color: var(--warn); background: var(--warn-bg); }
     .chip.locked { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
     .chip .chip-row { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
-    .chip .cname { font-weight: 600; }
+    .chip-actions { display: flex; align-items: center; gap: 0.2rem; flex: 0 0 auto; }
+    .movesel { font-size: 0.72rem; border: 1px solid var(--line); border-radius: 5px; background: var(--bg);
+      color: var(--muted); padding: 0.1rem 0.2rem; max-width: 72px; cursor: pointer; }
+    .chip .cname { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chip .ctags { color: var(--muted); font-size: 0.8rem; margin-top: 0.1rem; }
     .lockbtn { border: none; background: transparent; cursor: pointer; padding: 0.1rem; line-height: 1;
       display: inline-flex; color: var(--muted); opacity: 0.7; }
@@ -268,7 +280,18 @@
       #printRoster li { font-size: 11pt; margin: 1.5pt 0; }
       #printRoster .rtags { color: #555; font-size: 9.5pt; }
     }
-  </style>
+
+    /* --- Responsive --- */
+    @media (max-width: 720px) {
+      header { padding: 0.7rem 1rem; }
+      .apptabs { padding: 0 1rem; }
+      main { padding: 1rem 1rem 4rem; }
+      h1 { font-size: 1.15rem; }
+      .apptab { padding: 0.65rem 0.8rem; }
+      .gcol { flex-basis: 80vw; }
+      .solvebar { gap: 0.7rem; }
+      .apptabs-right #loadedName { display: none; }   /* keep the tab row compact on phones */
+    }
 </head>
 <body>
   <header>
@@ -281,7 +304,16 @@
       <h1>PBL Group Builder</h1>
       <p class="tag">JABSOM Problem-Based Learning group assignment &mdash; MD1&ndash;MD7</p>
     </div>
-    <div class="transport" role="toolbar" aria-label="Actions">
+  </header>
+
+  <nav class="apptabs" aria-label="Views and actions">
+    <div class="apptab-group" id="appTabs" role="tablist" aria-label="Views">
+      <button class="apptab active" data-view="roster" role="tab" aria-selected="true">Roster</button>
+      <button class="apptab" data-view="groups" role="tab" aria-selected="false">Groups</button>
+    </div>
+    <div class="apptabs-right">
+      <span id="loadedName" class="tag"></span>
+      <div class="transport" role="toolbar" aria-label="Actions">
       <button id="btnExample" class="iconbtn" title="Load example data" aria-label="Load example data">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v4M3 5h4"/><path d="M18 14v4M16 16h4"/><path d="M12 5l2.4 5.6L20 13l-5.6 2.4L12 21l-2.4-5.6L4 13l5.6-2.4z"/></svg>
       </button>
@@ -306,13 +338,8 @@
       <button id="btnExport" class="iconbtn primary" disabled title="Export workbook (.xlsx)" aria-label="Export workbook">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/></svg>
       </button>
+      </div>
     </div>
-  </header>
-
-  <nav class="apptabs" id="appTabs" role="tablist" aria-label="Views">
-    <button class="apptab active" data-view="roster" role="tab" aria-selected="true">Roster</button>
-    <button class="apptab" data-view="groups" role="tab" aria-selected="false">Groups</button>
-    <span id="loadedName" class="tag"></span>
   </nav>
 
   <main>
@@ -694,7 +721,7 @@
   function validate(wb) {
     const errors = [], warnings = [];
     const bad = {}; SHEET_ORDER.forEach(s => bad[s] = new Set());
-    const err  = (loc, msg, sheet, ri) => { errors.push({ loc, msg }); if (sheet) bad[sheet].add(ri); };
+    const err  = (loc, msg, sheet, ri) => { errors.push({ loc, msg, sheet, ri }); if (sheet) bad[sheet].add(ri); };
     const warn = (loc, msg) => warnings.push({ loc, msg });
 
     // Sheet presence + column presence
@@ -791,7 +818,7 @@
   }
 
   // ---- Rendering ---------------------------------------------------------
-  let editorOpen = false;        // is the spreadsheet editor expanded under the summary card?
+  let editorOpen = true;         // is the spreadsheet editor expanded under the summary card?
   let lastValidation = null;     // most recent validate() result, for the summary card
   let rosterFilter = '';         // view/edit one class at a time ('' = all classes)
 
@@ -831,10 +858,27 @@
         ? `<span class="pill ok">✓ No blocking errors</span>`
         : `<span class="pill err">${nE} error${nE>1?'s':''}</span>`) +
       (nW ? `<span class="pill warn">${nW} warning${nW>1?'s':''}</span>` : '');
-    const row = (cls, x) => `<div class="issue ${cls}"><span class="loc">${x.loc}:</span> ${x.msg}</div>`;
+    const row = (cls, x) => {
+      const loc = (x.sheet)
+        ? `<button class="loc loclink" data-sheet="${escapeAttr(x.sheet)}" data-ri="${x.ri}">${escapeHtml(x.loc)}</button>: `
+        : `<span class="loc">${escapeHtml(x.loc)}:</span> `;
+      return `<div class="issue ${cls}">${loc}${escapeHtml(x.msg)}</div>`;
+    };
     $('issues').innerHTML =
       res.errors.map(e => row('err', e)).join('') +
       res.warnings.map(w => row('warn', w)).join('');
+  }
+
+  // Jump from a validation error to the offending cell: open Roster, expand the
+  // editor, switch to the sheet, clear any class filter, scroll to + flash the row.
+  function jumpToError(sheet, ri) {
+    showView('roster');
+    editorOpen = true; rosterFilter = '';
+    if (lastValidation) renderSummary(lastValidation);
+    renderRosterFilter();
+    activeTab = sheet; renderTabs(); renderSheet();
+    const tr = $('sheetView').querySelectorAll('tbody tr')[ri];
+    if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('flash'); setTimeout(() => tr.classList.remove('flash'), 1500); }
   }
 
   function renderTabs() {
@@ -1354,16 +1398,20 @@
     board.className = 'board';
     board.innerHTML = res.groups.map((g, gi) => {
       const tnames = g.tutors.map(t => tutors.get(t) || t).join(', ') || '—';
+      // Keyboard/touch alternative to dragging: a "Move to…" select listing the other groups.
+      const moveOpts = res.groups.map((gg, j) => j === gi ? '' :
+        `<option value="${j}">${escapeHtml(gg.GroupID)}</option>`).join('');
       const chips = g.students.map(sid => {
         const s = students.get(sid) || {};
         const tags = [up(s.Imi) === 'Y' ? 'Imi Hoʻōla' : '', up(s.Resident) === 'N' ? 'Non-resident' : '',
                       genderLabel(s.Gender), norm(s.ScheduleTag) ? tagLabel(s.ScheduleTag) : ''].filter(Boolean).join(' · ');
         const f = flags.get(sid), wn = warns.get(sid), lk = locked.has(sid);
-        const tip = f || wn;
+        const tip = f || wn, nm = norm(s.Name) || sid;
         return `<div class="chip${f ? ' flag' : wn ? ' warn' : ''}${lk ? ' locked' : ''}" draggable="true" data-sid="${escapeAttr(sid)}"` +
           (tip ? ` title="${escapeAttr(tip.rule + ': ' + tip.detail)}"` : '') + `>` +
-          `<div class="chip-row"><span class="cname">${escapeHtml(norm(s.Name) || sid)}</span>` +
-          `<button class="lockbtn" data-sid="${escapeAttr(sid)}" aria-label="${lk ? 'Locked' : 'Lock in place'}" title="${lk ? 'Locked — kept in place on re-solve' : 'Lock in place'}">${lk ? ICONS.lock : ICONS.unlock}</button></div>` +
+          `<div class="chip-row"><span class="cname">${escapeHtml(nm)}</span><span class="chip-actions">` +
+          `<select class="movesel" data-sid="${escapeAttr(sid)}" aria-label="Move ${escapeAttr(nm)} to another group" title="Move to another group"><option value="">Move…</option>${moveOpts}</select>` +
+          `<button class="lockbtn" data-sid="${escapeAttr(sid)}" aria-label="${lk ? 'Locked' : 'Lock in place'}" title="${lk ? 'Locked — kept in place on re-solve' : 'Lock in place'}">${lk ? ICONS.lock : ICONS.unlock}</button></span></div>` +
           (tags ? `<div class="ctags">${escapeHtml(tags)}</div>` : '') + `</div>`;
       }).join('') || `<div class="hint" style="margin:0">drop students here</div>`;
       const over = g.students.length > g.capacity;
@@ -1477,7 +1525,7 @@
     badRows = res.badRows;
     activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
     $('placeholder').classList.add('hidden');
-    editorOpen = false;               // start each load with the editor collapsed (calm summary)
+    editorOpen = true;                // show the data expanded by default
     rosterFilter = '';
     renderValidation(res);
     renderSummary(res);
@@ -1555,6 +1603,12 @@
 
   // Roster class filter — view/edit one class year at a time.
   $('rosterClass').onchange = () => { rosterFilter = $('rosterClass').value; renderSheet(); };
+
+  // Jump from a validation error to its cell.
+  $('issues').addEventListener('click', (e) => {
+    const link = e.target.closest && e.target.closest('.loclink');
+    if (link) jumpToError(link.dataset.sheet, +link.dataset.ri);
+  });
 
   // Prefill the editor with the ~80-student demo cohort (freshly generated each time).
   $('btnExample').onclick = () => {
@@ -1672,6 +1726,11 @@
   boardEl.addEventListener('click', (e) => {
     const lb = e.target.closest && e.target.closest('.lockbtn');
     if (lb) { e.stopPropagation(); toggleLock(lb.dataset.sid); }
+  });
+  // Keyboard/touch move (the "Move to…" select on each chip).
+  boardEl.addEventListener('change', (e) => {
+    const ms = e.target.closest && e.target.closest('.movesel');
+    if (ms && ms.value !== '' && lastResult) moveStudent(ms.dataset.sid, +ms.value);
   });
 
   $('btnExport').onclick = () => {
