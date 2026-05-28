@@ -242,8 +242,8 @@
     .chip.locked { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
     .chip .chip-row { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
     .chip-actions { display: flex; align-items: center; gap: 0.2rem; flex: 0 0 auto; }
-    .movesel { font-size: 0.72rem; border: 1px solid var(--line); border-radius: 5px; background: var(--bg);
-      color: var(--muted); padding: 0.1rem 0.2rem; max-width: 72px; cursor: pointer; }
+    .movesel { font-size: 0.78rem; border: 1px solid var(--line); border-radius: 5px; background: var(--bg);
+      color: var(--muted); padding: 0.15rem 0.25rem; max-width: 76px; cursor: pointer; }
     .chip .cname { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chip .ctags { color: var(--muted); font-size: 0.8rem; margin-top: 0.1rem; }
     .lockbtn { border: none; background: transparent; cursor: pointer; padding: 0.1rem; line-height: 1;
@@ -1517,13 +1517,13 @@
   // and a PBLHistory with this unit's rows replaced (idempotent re-export). A
   // co-tutored group writes one history row per tutor so repeat-avoidance sees all.
   function resultSheets(result, wb) {
-    const unit = norm(result.unit);
+    const unit = norm(result.unit), cohort = norm(result.cohort);
     const tutorName = new Map((wb.Tutors || []).map(t => [norm(t.TutorID), norm(t.Name)]));
     const studName  = new Map((wb.Students || []).map(s => [norm(s.StudentID), norm(s.Name)]));
     const results = [], history = [];
     result.groups.forEach(g => {
       g.students.forEach(sid => {
-        results.push({ Unit: unit, GroupID: g.GroupID, TimeSlot: g.TimeSlot,
+        results.push({ Unit: unit, Cohort: cohort, GroupID: g.GroupID, TimeSlot: g.TimeSlot,
           TutorIDs: g.tutors.join('; '), TutorNames: g.tutors.map(t => tutorName.get(t) || t).join('; '),
           StudentID: sid, StudentName: studName.get(sid) || sid });
         (g.tutors.length ? g.tutors : ['']).forEach(t =>
@@ -1537,7 +1537,7 @@
       .filter(r => !(norm(r.Unit) === unit && placed.has(norm(r.StudentID)))).concat(history);
     return { results, history: mergedHistory };
   }
-  const RESULTS_COLS = ['Unit', 'GroupID', 'TimeSlot', 'TutorIDs', 'TutorNames', 'StudentID', 'StudentName'];
+  const RESULTS_COLS = ['Unit', 'Cohort', 'GroupID', 'TimeSlot', 'TutorIDs', 'TutorNames', 'StudentID', 'StudentName'];
 
   // Build the export workbook: all canonical sheets (with edits), and — when a clean
   // solve exists — a Results sheet plus this unit's rows appended to PBLHistory.
@@ -1574,7 +1574,8 @@
       return `<section class="rgroup"><h2>${escapeHtml(groupLabel(g.GroupID))} · ${escapeHtml(g.TimeSlot || '—')} · ${escapeHtml(tut)}` +
              ` <span class="rcount">(${g.students.length})</span></h2><ol>${lis}</ol></section>`;
     }).join('');
-    $('printRoster').innerHTML = `<h1>PBL Groups — ${escapeHtml(lastResult.unit)}</h1>${groups}`;
+    const co = norm(lastResult.cohort);
+    $('printRoster').innerHTML = `<h1>PBL Groups — ${escapeHtml(lastResult.unit)}${co ? ' · Class ' + escapeHtml(co) : ''}</h1>${groups}`;
     window.print();
   }
 
@@ -1822,7 +1823,8 @@
   function doExport() {
     if (!workbook) return;
     const solved = lastResult && !lastResult.error;
-    const name = solved ? `PBL_${lastResult.unit}_results.xlsx` : 'PBL_export.xlsx';
+    const co = solved ? norm(lastResult.cohort) : '';
+    const name = solved ? `PBL_${lastResult.unit}${co ? '_' + co : ''}_results.xlsx` : 'PBL_export.xlsx';
     download(exportWorkbook(), name);
     dirty = false;        // saved to disk
     toast(solved ? `Exported ${name} (with results + history)` : `Exported ${name}`);
