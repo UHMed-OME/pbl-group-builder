@@ -31,7 +31,7 @@
       padding: 0.9rem 1.5rem;
       background: var(--bg); color: var(--fg);
       border-bottom: 3px solid var(--brand);
-      display: flex; align-items: center; gap: 0.85rem;
+      display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;
     }
     .logo { flex: 0 0 auto; height: 46px; width: 46px; background: #fff;
             border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
@@ -50,15 +50,20 @@
     .iconbtn.primary:hover:not(:disabled) { filter: brightness(1.08); }
     .tsep { width: 1px; height: 26px; background: var(--line); margin: 0 0.15rem; }
     /* Top-level app tabs */
-    .apptabs { display: flex; align-items: center; gap: 0.3rem; padding: 0 1.5rem;
+    .apptabs { display: flex; align-items: center; gap: 0.3rem; padding: 0 1.5rem; flex-wrap: wrap;
       background: var(--surface); border-bottom: 1px solid var(--line); }
     .apptab { border: none; background: transparent; padding: 0.75rem 1.15rem; font: inherit;
       font-size: 1rem; font-weight: 600; color: var(--muted); cursor: pointer;
       border-bottom: 3px solid transparent; }
     .apptab:hover { color: var(--fg); }
     .apptab.active { color: var(--brand-dark); border-bottom-color: var(--brand); }
-    .apptabs #loadedName { margin-left: auto; }
-    main { padding: 1.25rem 1.5rem 4rem; max-width: 1240px; margin: 0 auto; }
+    .apptabs #loadedName { margin-left: auto; min-width: 0; max-width: 55%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    main { padding: 1.25rem 1.75rem 4rem; }
+    /* Inline SVG icons sit on the text baseline; sized uniformly. */
+    .icon { width: 18px; height: 18px; flex: 0 0 auto; vertical-align: -0.18em; }
+    button .icon { vertical-align: -0.18em; }
+    .iconbtn .icon { width: 20px; height: 20px; vertical-align: 0; }
     .toolbar {
       display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;
       padding: 1rem 0; border-bottom: 1px solid var(--line); margin-bottom: 1.25rem;
@@ -142,7 +147,8 @@
     td.actions-cell { text-align: center; white-space: nowrap; }
     th.actions-col { width: 1%; }
     button.rowdel { border: none; background: transparent; color: var(--err); cursor: pointer;
-      font-size: 1rem; line-height: 1; padding: 0.15rem 0.45rem; border-radius: 4px; }
+      line-height: 1; padding: 0.3rem; border-radius: 5px; display: inline-flex; align-items: center; }
+    button.rowdel .icon { width: 17px; height: 17px; }
     button.rowdel:hover { background: var(--err-bg); }
 
     /* --- Solver: controls, scorecard, board --- */
@@ -185,15 +191,27 @@
     .chip .chip-row { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
     .chip .cname { font-weight: 600; }
     .chip .ctags { color: var(--muted); font-size: 0.8rem; margin-top: 0.1rem; }
-    .lockbtn { border: none; background: transparent; cursor: pointer; padding: 0 0.1rem;
-      font-size: 0.95rem; line-height: 1; opacity: 0.55; filter: grayscale(1); }
-    .lockbtn:hover { opacity: 1; filter: none; background: transparent; }
-    .chip.locked .lockbtn { opacity: 1; filter: none; }
+    .lockbtn { border: none; background: transparent; cursor: pointer; padding: 0.1rem; line-height: 1;
+      display: inline-flex; color: var(--muted); opacity: 0.7; }
+    .lockbtn .icon { width: 16px; height: 16px; }
+    .lockbtn:hover { opacity: 1; color: var(--fg); background: transparent; }
+    .chip.locked .lockbtn { opacity: 1; color: var(--accent); }
     .gcol.dragover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
     .gcol.dragover .gbody { background: var(--accent-bg); }
     .gcount { font-size: 0.82rem; color: var(--muted); padding: 0 0.8rem 0.6rem; }
     .board-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0.2rem 0 0.9rem; }
     .board-actions .hint { flex: 1 1 280px; }
+
+    /* --- In-app confirmation modal --- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(10, 20, 16, 0.5);
+      display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 1000; }
+    .modal-card { background: var(--bg); border-radius: 12px; padding: 1.4rem 1.5rem 1.2rem;
+      max-width: 420px; width: 100%; box-shadow: 0 16px 48px rgba(0,0,0,0.28); }
+    .modal-title { margin: 0 0 0.5rem; font-size: 1.1rem; color: var(--brand-dark); }
+    .modal-msg { margin: 0 0 1.2rem; color: var(--fg); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
+    button.danger { background: var(--err); border-color: var(--err); color: #fff; }
+    button.danger:hover { filter: brightness(1.08); background: var(--err); }
 
     /* --- Printable / PDF roster (hidden on screen, shown only when printing) --- */
     .print-only { display: none; }
@@ -222,17 +240,30 @@
       <p class="tag">JABSOM Problem-Based Learning group assignment &mdash; MD1&ndash;MD7</p>
     </div>
     <div class="transport" role="toolbar" aria-label="Actions">
-      <button id="btnExample" class="iconbtn" title="Load example data" aria-label="Load example data">✨</button>
-      <label class="iconbtn" title="Open workbook (.xlsx / .csv)" aria-label="Open workbook">📂
+      <button id="btnExample" class="iconbtn" title="Load example data" aria-label="Load example data">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v4M3 5h4"/><path d="M18 14v4M16 16h4"/><path d="M12 5l2.4 5.6L20 13l-5.6 2.4L12 21l-2.4-5.6L4 13l5.6-2.4z"/></svg>
+      </button>
+      <label class="iconbtn" title="Open workbook (.xlsx / .csv)" aria-label="Open workbook">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a1 1 0 0 1 1-1h4l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg>
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
       </label>
-      <button id="btnPaste" class="iconbtn" title="Paste rows from Excel / Google Sheets" aria-label="Paste rows">📋</button>
-      <button id="btnTemplate" class="iconbtn" title="Download blank template" aria-label="Download blank template">⬇</button>
+      <button id="btnPaste" class="iconbtn" title="Paste rows from Excel / Google Sheets" aria-label="Paste rows">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg>
+      </button>
+      <button id="btnTemplate" class="iconbtn" title="Download blank template" aria-label="Download blank template">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+      </button>
       <span class="tsep" aria-hidden="true"></span>
-      <button id="btnUndo" class="iconbtn" disabled title="Undo (Ctrl+Z)" aria-label="Undo">↶</button>
-      <button id="btnRedo" class="iconbtn" disabled title="Redo (Ctrl+Shift+Z)" aria-label="Redo">↷</button>
+      <button id="btnUndo" class="iconbtn" disabled title="Undo (Ctrl+Z)" aria-label="Undo">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+      </button>
+      <button id="btnRedo" class="iconbtn" disabled title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+      </button>
       <span class="tsep" aria-hidden="true"></span>
-      <button id="btnExport" class="iconbtn primary" disabled title="Export workbook (.xlsx)" aria-label="Export workbook">⬆</button>
+      <button id="btnExport" class="iconbtn primary" disabled title="Export workbook (.xlsx)" aria-label="Export workbook">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/></svg>
+      </button>
     </div>
   </header>
 
@@ -278,7 +309,7 @@
         <p class="section-sub">Pick the unit and Solve. Then drag students between groups to adjust — a red chip breaks a hard rule. Lock anyone and re-solve.</p>
         <div class="solvebar">
           <label>Unit&nbsp; <select id="unitSel"></select></label>
-          <button id="btnSolve" class="primary">▶ Solve groups</button>
+          <button id="btnSolve" class="primary"><svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg> Solve groups</button>
           <details class="weights">
             <summary>Soft-preference weights</summary>
             <div class="wgrid" id="weights"></div>
@@ -287,9 +318,9 @@
         <div id="scorecard"></div>
         <div id="boardActions" class="board-actions hidden">
           <span class="hint" style="margin:0">Drag a student between groups to adjust. A red chip breaks a hard rule (hover for why). Lock 🔒 anyone to keep on re-solve.</span>
-          <button id="btnResolve">↻ Re-solve (keep locked)</button>
+          <button id="btnResolve"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg> Re-solve (keep locked)</button>
           <button id="btnUnlockAll">Unlock all</button>
-          <button id="btnPrint">🖨 Print / Save PDF roster</button>
+          <button id="btnPrint"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><rect x="7" y="14" width="10" height="6" rx="1"/></svg> Print / Save PDF roster</button>
         </div>
         <div id="board"></div>
       </div>
@@ -298,6 +329,18 @@
 
   <!-- Printable roster: hidden on screen, shown only when printing (Save as PDF). -->
   <div id="printRoster" class="print-only"></div>
+
+  <!-- In-app confirmation dialog (replaces the browser confirm()). -->
+  <div id="modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <h2 id="modalTitle" class="modal-title">Please confirm</h2>
+      <p id="modalMsg" class="modal-msg"></p>
+      <div class="modal-actions">
+        <button id="modalCancel">Cancel</button>
+        <button id="modalOk" class="primary danger">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <script src="vendor/xlsx.full.min.js"></script>
   <script>
@@ -336,6 +379,15 @@
   const SCHEDULE_TAGS = ['', 'ImiGA', 'HOMEmgr',
     ...SCHED_DAYS.flatMap(d => SCHED_SLOTS.map(s => `Exception:${d}-${s}`))];
   const CUSTOM_TAG = '__custom__';
+
+  // Inline SVG icons (no emoji — vector, themeable via currentColor) for dynamic controls.
+  const _svg = (inner, fill) => `<svg class="icon" viewBox="0 0 24 24" ${fill ? 'fill="currentColor"' :
+    'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'} aria-hidden="true">${inner}</svg>`;
+  const ICONS = {
+    lock:   _svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+    unlock: _svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-1.8"/>'),
+    trash:  _svg('<path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>'),
+  };
 
   // ---- Display labels --------------------------------------------------
   // The workbook round-trip needs the exact canonical keys/values, so we keep
@@ -744,7 +796,7 @@
     const body = rows.map((r, i) =>
       `<tr class="${bad.has(i) ? 'badrow' : ''}">` +
       cols.map(c => cell(r, i, c)).join('') +
-      `<td class="actions-cell"><button class="rowdel" data-del="${i}" title="Delete row">✕</button></td></tr>`).join('');
+      `<td class="actions-cell"><button class="rowdel" data-del="${i}" aria-label="Delete row" title="Delete row">${ICONS.trash}</button></td></tr>`).join('');
 
     view.innerHTML =
       `<div class="sheet-tools"><button id="btnAddRow">+ Add row</button>` +
@@ -788,8 +840,10 @@
         const ri = +del.dataset.del;
         const row = workbook[sheet][ri] || {};
         const who = norm(row.Name) || (SCHEMA[sheet].key && norm(row[SCHEMA[sheet].key])) || `row ${ri + 2}`;
-        if (!confirm(`Delete ${who} from ${sheetLabel(sheet)}? You can undo this with Ctrl+Z.`)) return;
-        workbook[sheet].splice(ri, 1); renderSheet(); refreshValidation(); pushHistory();
+        confirmDialog(`Delete ${who} from ${sheetLabel(sheet)}? You can undo this with Ctrl+Z.`, 'Delete').then(ok => {
+          if (!ok) return;
+          workbook[sheet].splice(ri, 1); renderSheet(); refreshValidation(); pushHistory();
+        });
       }
     };
   }
@@ -1179,7 +1233,7 @@
         return `<div class="chip${f ? ' flag' : ''}${lk ? ' locked' : ''}" draggable="true" data-sid="${escapeAttr(sid)}"` +
           (f ? ` title="${escapeAttr(f.rule + ': ' + f.detail)}"` : '') + `>` +
           `<div class="chip-row"><span class="cname">${escapeHtml(norm(s.Name) || sid)}</span>` +
-          `<button class="lockbtn" data-sid="${escapeAttr(sid)}" title="${lk ? 'Locked — kept in place on re-solve' : 'Lock in place'}">${lk ? '🔒' : '🔓'}</button></div>` +
+          `<button class="lockbtn" data-sid="${escapeAttr(sid)}" aria-label="${lk ? 'Locked' : 'Lock in place'}" title="${lk ? 'Locked — kept in place on re-solve' : 'Lock in place'}">${lk ? ICONS.lock : ICONS.unlock}</button></div>` +
           (tags ? `<div class="ctags">${escapeHtml(tags)}</div>` : '') + `</div>`;
       }).join('') || `<div class="hint" style="margin:0">drop students here</div>`;
       const over = g.students.length > g.capacity;
@@ -1313,7 +1367,30 @@
     $('view-groups').hidden = v !== 'groups';
   }
 
+  // ---- In-app confirmation dialog (returns a Promise<boolean>) ------------
+  let _modalResolve = null;
+  function confirmDialog(message, okLabel) {
+    $('modalMsg').textContent = message;
+    $('modalOk').textContent = okLabel || 'Confirm';
+    $('modal').classList.remove('hidden');
+    $('modalOk').focus();
+    return new Promise(resolve => { _modalResolve = resolve; });
+  }
+  function closeModal(result) {
+    $('modal').classList.add('hidden');
+    const r = _modalResolve; _modalResolve = null;
+    if (r) r(result);
+  }
+
   // ---- Wiring ------------------------------------------------------------
+  // Confirmation modal: buttons, scrim click, Escape.
+  $('modalOk').onclick = () => closeModal(true);
+  $('modalCancel').onclick = () => closeModal(false);
+  $('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(false); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) closeModal(false);
+  });
+
   // Top-level tab switching (Roster / Groups).
   $('appTabs').addEventListener('click', (e) => {
     const tab = e.target.closest && e.target.closest('.apptab');
