@@ -490,7 +490,10 @@
     PBLHistory: { key: null, essential: [],
       required: ['Unit', 'StudentID', 'GroupID', 'TutorID'] },
   };
-  const SHEET_ORDER = ['Students', 'Tutors', 'Conflicts', 'Groups', 'Blockouts', 'PBLHistory'];
+  // Groups are no longer a managed sheet — they're auto-built from each tutor's units + meeting
+  // times (see groupsForUnit). SCHEMA.Groups stays so a hand-injected/imported Groups array still
+  // round-trips through groupsForUnit's defined-path, but it gets no editor tab and isn't exported.
+  const SHEET_ORDER = ['Students', 'Tutors', 'Conflicts', 'Blockouts', 'PBLHistory'];
   const UNITS = ['MD1','MD2','MD3','MD4','MD5','MD6','MD7'];
   // Weekly schedule grid (clock times replace the old AM/PM model).
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
@@ -619,10 +622,6 @@
       { TypeA_ID:'AB01', TypeB_ID:'CD02', Kind:'student-student', Reason:'prior issue' },
       { TypeA_ID:'T02',  TypeB_ID:'EF03', Kind:'tutor-student',   Reason:'family' },
     ],
-    Groups: [
-      { Unit:'MD1', GroupID:'G1', Day:'Mon', Start:'09:00', End:'11:00', TutorIDs:'T02' },
-      { Unit:'MD1', GroupID:'G2', Day:'Tue', Start:'13:00', End:'15:00', TutorIDs:'T03' },
-    ],
     Blockouts: [
       { Subject:'ImiGA', Day:'Wed', Start:'09:00', End:'10:00' },
     ],
@@ -651,10 +650,7 @@
     for (let t = 1; t <= G; t++) { const sl = slot(t);   // each tutor's own meeting day/time
       Tutors.push({ TutorID: tid(t), Name: `Dr. ${firsts[(t * 3) % firsts.length]} ${lasts[(t * 5) % lasts.length]}`,
                     Units: 'MD2', Day: sl.day, Start: sl.start, End: sl.end, MaxStudents: 6, CoTutorOK: t % 3 ? 'Y' : 'N' }); }
-    // This unit's slots (MD2): groups spread across Mon–Fri, mornings then afternoons.
-    const Groups = [];
-    for (let g = 1; g <= G; g++) { const sl = slot(g);
-      Groups.push({ Unit: 'MD2', GroupID: gid(g), Day: sl.day, Start: sl.start, End: sl.end, TutorIDs: tid(g) }); }
+    // Groups are auto-built per tutor (one MD2 group each, using the tutor's own day/time).
 
     const Students = [], PBLHistory = [];
     for (let i = 0; i < N; i++) {
@@ -684,7 +680,7 @@
       { Subject: 'ImiGA',   Day: 'Mon', Start: '09:00', End: '11:00' },
       { Subject: 'HOMEmgr', Day: 'Tue', Start: '13:00', End: '15:00' },
     ];
-    return { Students, Tutors, Conflicts, Groups, Blockouts, PBLHistory };
+    return { Students, Tutors, Conflicts, Blockouts, PBLHistory };
   }
 
   // ---- State -------------------------------------------------------------
@@ -1123,19 +1119,22 @@
     [...covered].sort((a, b) => timeToMin(a) - timeToMin(b)).forEach(h =>
       workbook.Blockouts.push({ Subject: subject, Day: day, Start: h, End: HOURS[HOURS.indexOf(h) + 1] }));
   }
-  // Units that actually define group meeting times, for the overlay picker.
-  function schedUnits() {
-    return [...new Set((workbook.Groups || []).map(g => norm(g.Unit)).filter(Boolean))]
-      .sort((a, b) => UNITS.indexOf(a) - UNITS.indexOf(b));
+  // Units to offer (from tutor Units and/or any imported Groups data; fallback all MD1–MD7).
+  function availableUnits() {
+    const fromGroups = (workbook.Groups || []).map(g => norm(g.Unit));
+    const fromTutors = (workbook.Tutors || []).flatMap(t => splitIds(t.Units).map(x => x.toUpperCase()));
+    const u = [...new Set([...fromGroups, ...fromTutors].filter(Boolean))].sort((a, b) => UNITS.indexOf(a) - UNITS.indexOf(b));
+    return u.length ? u : UNITS.slice();
   }
-  // Map `day|HH:00` → [group label …] for a unit's groups (to overlay on the calendar).
+  const schedUnits = availableUnits;
+  // Map `day|HH:00` → [group label …] for a unit's groups (auto-built from tutors or defined),
+  // so the calendar overlays the *actual* meeting times the solver will use.
   function unitGroupCells(unit) {
     const map = new Map();
-    (workbook.Groups || []).filter(g => norm(g.Unit) === unit).forEach(g => {
-      const day = norm(g.Day), s = timeToMin(g.Start), e = timeToMin(g.End);
-      if (!day || isNaN(s) || isNaN(e)) return;
+    groupsForUnit(workbook, unit, buildIndex(workbook).tutorsById).forEach(g => {
+      if (!g.day || isNaN(g.start) || isNaN(g.end)) return;
       HOURS.slice(0, -1).forEach((h, hi) => { const cs = timeToMin(h), ce = timeToMin(HOURS[hi + 1]);
-        if (cs < e && s < ce) { const k = day + '|' + h; (map.get(k) || map.set(k, []).get(k)).push(groupLabel(g.GroupID)); } });
+        if (cs < g.end && g.start < ce) { const k = g.day + '|' + h; (map.get(k) || map.set(k, []).get(k)).push(groupLabel(g.GroupID)); } });
     });
     return map;
   }
@@ -1159,23 +1158,29 @@
           (gs ? ` title="Groups here: ${escapeAttr(gs.join(', '))}"` : '') + `></td>`;
       }).join('') + `</tr>`).join('');
 
-    // Impact summary for the chosen subject against the overlaid unit's groups.
+    // Impact summary. Measure a unit subject against its own groups (for capacity); a role
+    // subject against the overlaid unit's groups. Groups come from groupsForUnit (auto-built).
     const isUnit = UNITS.includes(scheduleSubject);
     const ranges = (workbook.Blockouts || []).filter(r => norm(r.Subject) === scheduleSubject)
       .map(r => ({ day: norm(r.Day), s: timeToMin(r.Start), e: timeToMin(r.End) })).filter(b => b.day && !isNaN(b.s) && !isNaN(b.e));
-    const unitGroups = (workbook.Groups || []).filter(g => norm(g.Unit) === scheduleUnit);
-    const overlap = unitGroups.filter(g => { const d = norm(g.Day), s = timeToMin(g.Start), e = timeToMin(g.End);
-      return d && !isNaN(s) && !isNaN(e) && ranges.some(b => b.day === d && b.s < e && s < b.e); });
-    const roleN = isUnit ? 0 : (workbook.Students || []).filter(s => norm(s.ScheduleTag) === scheduleSubject).length;
+    const measureUnit = isUnit ? scheduleSubject : scheduleUnit;
+    const grps = measureUnit ? groupsForUnit(workbook, measureUnit, buildIndex(workbook).tutorsById) : [];
+    const overlaps = (g) => g.day && !isNaN(g.start) && !isNaN(g.end) && ranges.some(b => b.day === g.day && b.s < g.end && g.start < b.e);
+    const overlapN = grps.filter(overlaps).length;
     let impact;
     if (!ranges.length) impact = `No block-outs set for ${escapeHtml(isUnit ? scheduleSubject : (tagLabel(scheduleSubject) || scheduleSubject))} yet.`;
-    else if (isUnit) impact = `Affects <b>everyone in ${escapeHtml(scheduleSubject)}</b> · overlaps <b>${overlap.length}</b> of this unit's ${unitGroups.length} group(s)` +
-      (overlap.length ? ` — <span class="cal-warn">those slots become unusable for ${escapeHtml(scheduleSubject)}</span>` : '');
-    else impact = `<b>${roleN}</b> student(s) have this role · overlaps <b>${overlap.length}</b> of ${escapeHtml(scheduleUnit || '—')}'s ${unitGroups.length} group(s)`;
+    else if (isUnit) {
+      const usable = grps.filter(g => !overlaps(g)).reduce((a, g) => a + (g.capacity || 0), 0);
+      const nStu = (workbook.Students || []).length;
+      impact = `Affects <b>everyone in ${escapeHtml(scheduleSubject)}</b> · blocks <b>${overlapN}</b> of its ${grps.length} group(s)` +
+        (overlapN ? ` — <span class="cal-warn">those slots become unusable</span>` : '') +
+        (overlapN && usable < nStu ? ` · <span class="cal-warn">⚠ only ${usable} usable seat(s) for ${nStu} students — short by ${nStu - usable}</span>` : '');
+    } else {
+      const roleN = (workbook.Students || []).filter(s => norm(s.ScheduleTag) === scheduleSubject).length;
+      impact = `<b>${roleN}</b> student(s) have this role · overlaps <b>${overlapN}</b> of ${escapeHtml(scheduleUnit || '—')}'s ${grps.length} group(s)`;
+    }
 
-    const unitPick = units.length
-      ? `<label class="cal-overlay">Show group times for&nbsp;<select id="schedUnit">${units.map(u => optionTag(u, u, u === scheduleUnit)).join('')}</select></label>`
-      : `<span class="hint" style="margin:0">No group meeting times set yet — add them on the Groups sheet to see them here.</span>`;
+    const unitPick = `<label class="cal-overlay">Show group times for&nbsp;<select id="schedUnit">${units.map(u => optionTag(u, u, u === scheduleUnit)).join('')}</select></label>`;
 
     view.innerHTML =
       `<div class="cal-bar"><label>Block out times for&nbsp;<select id="schedSubject">` +
@@ -1526,7 +1531,7 @@
     const w = weights || defaultWeights();
     if (!groups.length)
       return { unit, cohort: co, groups: [], violations: [], capacityShortfall: students.length,
-               scorecard: null, error: `No groups for ${unit}. Assign tutors to ${unit} (Units column) or add rows to the Groups sheet.` };
+               scorecard: null, error: `No groups for ${unit}. Assign tutors to ${unit} on the Tutors tab (Units column) — one group is built per tutor.` };
 
     // Resolve lock GroupIDs to indices for this unit's groups.
     const gidIndex = new Map(groups.map((g, gi) => [g.GroupID, gi]));
@@ -1560,12 +1565,8 @@
 
   // ---- Solver UI ---------------------------------------------------------
   function renderSolverControls() {
-    // Units come from the Groups sheet and/or the tutors' Units (so auto-built groups still
-    // give a unit list); if neither specifies any, offer all MD1–MD7.
-    const fromGroups = (workbook.Groups || []).map(g => norm(g.Unit));
-    const fromTutors = (workbook.Tutors || []).flatMap(t => splitIds(t.Units).map(x => x.toUpperCase()));
-    let units = [...new Set([...fromGroups, ...fromTutors].filter(Boolean))].sort((a, b) => UNITS.indexOf(a) - UNITS.indexOf(b));
-    if (!units.length) units = UNITS.slice();
+    // Units come from the tutors' Units (groups are auto-built per tutor); fallback all MD1–MD7.
+    const units = availableUnits();
     $('unitSel').innerHTML = units.map(u => `<option value="${escapeAttr(u)}">${escapeHtml(u)}</option>`).join('');
     // Class/cohort + unit are pulled from the loaded data (not hardcoded).
     // Show the Class picker whenever any cohort is present so the operator sees which class.

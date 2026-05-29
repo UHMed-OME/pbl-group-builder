@@ -66,14 +66,11 @@ console.log('✓ template round-trips losslessly and validates with 0 errors');
 // --- Test 2: validation catches deliberately broken data ------------------
 const bad = JSON.parse(JSON.stringify(app.TEMPLATE));
 bad.Students.push({ StudentID:'AB01', Name:'Dup', Gender:'F', Imi:'X', Resident:'Y', LCMentorID:'T99', ScheduleTag:'' });
-bad.Groups.push({ Unit:'MD9', GroupID:'G3', TimeSlot:'AM', TutorIDs:'T55' });
 res = app.validate(bad);
 const msgs = res.errors.map(e => e.msg).join(' | ');
 assert.ok(/duplicate StudentID "AB01"/.test(msgs), 'should flag duplicate StudentID');
 assert.ok(/Imi must be Y\/N/.test(msgs), 'should flag bad Imi enum');
 assert.ok(/LCMentorID "T99" is not in the Tutors/.test(msgs), 'should flag unknown LC mentor');
-assert.ok(/Unit must be one of MD1/.test(msgs), 'should flag bad unit');
-assert.ok(/TutorID "T55" is not in the Tutors/.test(msgs), 'should flag unknown group tutor');
 console.log(`✓ validation caught ${res.errors.length} seeded errors`);
 
 // --- Test 3: pasted rows (Excel/Sheets are tab-delimited) parse + match ---
