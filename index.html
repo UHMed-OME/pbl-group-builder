@@ -145,11 +145,20 @@
     table.cal th, table.cal td { border: 1px solid var(--line); }
     table.cal th { background: var(--surface); font-weight: 700; color: var(--brand-dark); font-size: 0.85rem; padding: 0.4rem 0.7rem; }
     table.cal th.cal-h { font-weight: 400; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-    td.cal-cell { width: 64px; height: 30px; cursor: pointer; }
-    td.cal-cell:hover { background: var(--accent-bg); }
+    td.cal-cell { width: 64px; height: 30px; cursor: pointer; user-select: none; }
+    td.cal-cell:hover { box-shadow: inset 0 0 0 2px var(--accent); }
+    td.cal-cell.has-group { background: var(--accent-bg); }   /* a group meets here (overlay) */
     td.cal-cell.blocked { background: var(--err); }
-    td.cal-cell.blocked:hover { filter: brightness(1.1); }
+    td.cal-cell.collision { background: repeating-linear-gradient(45deg, var(--err), var(--err) 5px, var(--warn) 5px, var(--warn) 10px); }
     td.cal-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .cal-overlay { font-size: 0.92rem; }
+    .cal-overlay select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+    .cal-impact { font-size: 0.9rem; color: var(--muted); margin: 0 0 0.6rem; } .cal-impact b { color: var(--fg); }
+    .cal-warn { color: var(--warn); font-weight: 600; }
+    .cal-legend { font-size: 0.8rem; color: var(--muted); margin-top: 0.6rem; display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+    .cal-legend .lg { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -2px; }
+    .cal-legend .lg-block { background: var(--err); } .cal-legend .lg-group { background: var(--accent-bg); }
+    .cal-legend .lg-coll { background: repeating-linear-gradient(45deg, var(--err), var(--err) 3px, var(--warn) 3px, var(--warn) 6px); }
     /* Shrink the bordered box to the table so it's left-aligned and compact, not full-width. */
     .sheet-wrap { overflow: auto; border: 1px solid var(--line); border-top: none; border-radius: 0 0 8px 8px;
       width: fit-content; max-width: 100%; }
@@ -897,6 +906,8 @@
   let lastValidation = null;     // most recent validate() result, for the summary card
   let rosterFilter = '';         // view/edit one class at a time ('' = all classes)
   let scheduleSubject = 'ImiGA'; // which subject's block-outs the Schedule calendar is editing
+  let scheduleUnit = '';         // which unit's group times to overlay on the calendar
+  let _calDrag = null;           // active drag-paint state on the calendar { view, on }
 
   // Class filter for the roster editor (only meaningful with 2+ cohorts).
   function renderRosterFilter() {
@@ -1112,26 +1123,83 @@
     [...covered].sort((a, b) => timeToMin(a) - timeToMin(b)).forEach(h =>
       workbook.Blockouts.push({ Subject: subject, Day: day, Start: h, End: HOURS[HOURS.indexOf(h) + 1] }));
   }
+  // Units that actually define group meeting times, for the overlay picker.
+  function schedUnits() {
+    return [...new Set((workbook.Groups || []).map(g => norm(g.Unit)).filter(Boolean))]
+      .sort((a, b) => UNITS.indexOf(a) - UNITS.indexOf(b));
+  }
+  // Map `day|HH:00` → [group label …] for a unit's groups (to overlay on the calendar).
+  function unitGroupCells(unit) {
+    const map = new Map();
+    (workbook.Groups || []).filter(g => norm(g.Unit) === unit).forEach(g => {
+      const day = norm(g.Day), s = timeToMin(g.Start), e = timeToMin(g.End);
+      if (!day || isNaN(s) || isNaN(e)) return;
+      HOURS.slice(0, -1).forEach((h, hi) => { const cs = timeToMin(h), ce = timeToMin(HOURS[hi + 1]);
+        if (cs < e && s < ce) { const k = day + '|' + h; (map.get(k) || map.set(k, []).get(k)).push(groupLabel(g.GroupID)); } });
+    });
+    return map;
+  }
+
   function renderSchedule(view) {
     const subs = scheduleSubjects();
     if (!subs.some(o => o.value === scheduleSubject)) scheduleSubject = subs.length ? subs[0].value : '';
-    const optsOf = grp => subs.filter(o => o.group === grp).map(o => optionTag(o.value, o.label, o.value === scheduleSubject)).join('');
+    const units = schedUnits();
+    if (units.length && !units.includes(scheduleUnit)) scheduleUnit = units[0];
+    const opt = (o) => { const n = blockedCells(o.value).size; return optionTag(o.value, n ? `${o.label} ●` : o.label, o.value === scheduleSubject); };
+    const optsOf = grp => subs.filter(o => o.group === grp).map(opt).join('');
     const blocked = blockedCells(scheduleSubject);
+    const groupCells = scheduleUnit ? unitGroupCells(scheduleUnit) : new Map();
+
     const head = `<tr><th></th>${DAYS.map(d => `<th>${d}</th>`).join('')}</tr>`;
-    const body = HOURS.slice(0, -1).map((h, hi) => `<tr><th class="cal-h">${h}</th>` +
-      DAYS.map(d => { const on = blocked.has(d + '|' + h);
-        return `<td class="cal-cell${on ? ' blocked' : ''}" data-day="${d}" data-start="${h}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${d} ${h}${on ? ', blocked' : ''}"></td>`;
+    const body = HOURS.slice(0, -1).map((h) => `<tr><th class="cal-h">${h}</th>` +
+      DAYS.map(d => { const k = d + '|' + h, on = blocked.has(k), gs = groupCells.get(k);
+        const cls = 'cal-cell' + (on ? ' blocked' : '') + (gs ? ' has-group' : '') + (on && gs ? ' collision' : '');
+        return `<td class="${cls}" data-day="${d}" data-start="${h}" data-hasgroup="${gs ? 1 : 0}" role="button" tabindex="0"` +
+          ` aria-pressed="${on}" aria-label="${d} ${h}${on ? ', blocked' : ''}${gs ? ', group meets' : ''}"` +
+          (gs ? ` title="Groups here: ${escapeAttr(gs.join(', '))}"` : '') + `></td>`;
       }).join('') + `</tr>`).join('');
+
+    // Impact summary for the chosen subject against the overlaid unit's groups.
+    const isUnit = UNITS.includes(scheduleSubject);
+    const ranges = (workbook.Blockouts || []).filter(r => norm(r.Subject) === scheduleSubject)
+      .map(r => ({ day: norm(r.Day), s: timeToMin(r.Start), e: timeToMin(r.End) })).filter(b => b.day && !isNaN(b.s) && !isNaN(b.e));
+    const unitGroups = (workbook.Groups || []).filter(g => norm(g.Unit) === scheduleUnit);
+    const overlap = unitGroups.filter(g => { const d = norm(g.Day), s = timeToMin(g.Start), e = timeToMin(g.End);
+      return d && !isNaN(s) && !isNaN(e) && ranges.some(b => b.day === d && b.s < e && s < b.e); });
+    const roleN = isUnit ? 0 : (workbook.Students || []).filter(s => norm(s.ScheduleTag) === scheduleSubject).length;
+    let impact;
+    if (!ranges.length) impact = `No block-outs set for ${escapeHtml(isUnit ? scheduleSubject : (tagLabel(scheduleSubject) || scheduleSubject))} yet.`;
+    else if (isUnit) impact = `Affects <b>everyone in ${escapeHtml(scheduleSubject)}</b> · overlaps <b>${overlap.length}</b> of this unit's ${unitGroups.length} group(s)` +
+      (overlap.length ? ` — <span class="cal-warn">those slots become unusable for ${escapeHtml(scheduleSubject)}</span>` : '');
+    else impact = `<b>${roleN}</b> student(s) have this role · overlaps <b>${overlap.length}</b> of ${escapeHtml(scheduleUnit || '—')}'s ${unitGroups.length} group(s)`;
+
+    const unitPick = units.length
+      ? `<label class="cal-overlay">Show group times for&nbsp;<select id="schedUnit">${units.map(u => optionTag(u, u, u === scheduleUnit)).join('')}</select></label>`
+      : `<span class="hint" style="margin:0">No group meeting times set yet — add them on the Groups sheet to see them here.</span>`;
+
     view.innerHTML =
       `<div class="cal-bar"><label>Block out times for&nbsp;<select id="schedSubject">` +
         `<optgroup label="Roles">${optsOf('Role')}</optgroup><optgroup label="Units">${optsOf('Unit')}</optgroup></select></label>` +
-      `<span class="hint" style="margin:0">Click cells to block/unblock. A role's blocks keep that role's students out of overlapping groups; a unit's blocks keep everyone in that unit out.</span></div>` +
-      `<div class="cal-wrap"><table class="cal">${head}${body}</table></div>`;
-    view.onchange = (e) => { if (e.target.id === 'schedSubject') { scheduleSubject = e.target.value; renderSchedule(view); } };
-    const toggle = (c) => { if (!c) return; setBlock(scheduleSubject, c.dataset.day, c.dataset.start, !c.classList.contains('blocked'));
-      renderSchedule(view); refreshValidation(); pushHistory(); };
-    view.onclick = (e) => { const c = e.target.closest && e.target.closest('.cal-cell'); if (c) toggle(c); };
-    view.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { const c = e.target.closest && e.target.closest('.cal-cell'); if (c) { e.preventDefault(); toggle(c); } } };
+        unitPick +
+        `<button id="schedClear" class="ghost"${ranges.length ? '' : ' disabled'}>Clear blocks</button></div>` +
+      `<div class="cal-impact">${impact}</div>` +
+      `<div class="cal-wrap"><table class="cal">${head}${body}</table></div>` +
+      `<div class="cal-legend"><span class="lg lg-block"></span> blocked &nbsp; <span class="lg lg-group"></span> a group meets &nbsp; <span class="lg lg-coll"></span> blocked while a group meets (conflict). Drag to paint.</div>`;
+
+    view.onchange = (e) => {
+      if (e.target.id === 'schedSubject') { scheduleSubject = e.target.value; renderSchedule(view); }
+      else if (e.target.id === 'schedUnit') { scheduleUnit = e.target.value; renderSchedule(view); }
+    };
+    const paint = (c, on) => { if (!c) return; setBlock(scheduleSubject, c.dataset.day, c.dataset.start, on);
+      c.classList.toggle('blocked', on); c.classList.toggle('collision', on && c.dataset.hasgroup === '1'); c.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+    view.onmousedown = (e) => { const c = e.target.closest && e.target.closest('.cal-cell'); if (!c) return;
+      e.preventDefault(); _calDrag = { view, on: !c.classList.contains('blocked') }; paint(c, _calDrag.on); };
+    view.onmouseover = (e) => { if (!_calDrag) return; const c = e.target.closest && e.target.closest('.cal-cell'); if (c) paint(c, _calDrag.on); };
+    view.onclick = (e) => { if (e.target.id === 'schedClear') {
+      workbook.Blockouts = (workbook.Blockouts || []).filter(r => norm(r.Subject) !== scheduleSubject);
+      renderSchedule(view); refreshValidation(); pushHistory(); } };
+    view.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { const c = e.target.closest && e.target.closest('.cal-cell');
+      if (c) { e.preventDefault(); paint(c, !c.classList.contains('blocked')); renderSchedule(view); refreshValidation(); pushHistory(); } } };
   }
 
   function addRow() {
@@ -1263,14 +1331,17 @@
   // Schedule fit: a student can't be in a group whose meeting time overlaps a block-out for
   // their role (ScheduleTag) OR for the unit being solved (a known course time). A group with
   // no meeting time has no constraint. `idx.blocks` = Map(subject → [{day,start,end}]); `idx.unit`.
-  function scheduleFits(student, group, idx) {
-    if (!group.day || isNaN(group.start) || isNaN(group.end)) return true;
+  // Returns the offending block { subject, day, start, end } (for messaging) or null.
+  function scheduleBlockHit(student, group, idx) {
+    if (!group.day || isNaN(group.start) || isNaN(group.end)) return null;
     const blocks = idx.blocks || new Map();
-    const ranges = (blocks.get(norm(student.ScheduleTag)) || []).concat(blocks.get(idx.unit) || []);
-    for (const b of ranges)
-      if (b.day === group.day && b.start < group.end && group.start < b.end) return false;
-    return true;
+    const hitIn = (subject) => {
+      const b = (blocks.get(subject) || []).find(b => b.day === group.day && b.start < group.end && group.start < b.end);
+      return b ? { subject, day: b.day, start: b.start, end: b.end } : null;
+    };
+    return hitIn(norm(student.ScheduleTag)) || hitIn(idx.unit);
   }
+  function scheduleFits(student, group, idx) { return !scheduleBlockHit(student, group, idx); }
 
   // Placement-independent hard checks (don't depend on who else is in the group).
   // Returns null if OK, else { rule, detail }.
@@ -1281,7 +1352,8 @@
     for (const t of group.tutors) if (idx.tsConf.has(t + '|' + sid)) return { rule: 'Tutor–student conflict', detail: `conflicts with tutor ${t}` };
     const pt = idx.prior.priorTutors.get(sid);
     if (pt) for (const t of group.tutors) if (pt.has(t)) return { rule: 'No repeat tutor', detail: `had tutor ${t} in a prior unit` };
-    if (!scheduleFits(student, group, idx)) return { rule: 'Schedule fit', detail: `a block-out overlaps ${group.GroupID} (${slotLabel(group)})` };
+    const hit = scheduleBlockHit(student, group, idx);
+    if (hit) return { rule: 'Schedule fit', detail: `${hit.subject} is blocked ${hit.day} ${minToTime(hit.start)}–${minToTime(hit.end)} (overlaps ${group.GroupID})` };
     return null;
   }
   // Student–student conflict with the current members of a group.
@@ -1796,6 +1868,11 @@
 
   // Roster class filter — view/edit one class year at a time.
   $('rosterClass').onchange = () => { rosterFilter = $('rosterClass').value; renderSheet(); };
+
+  // Finish a calendar drag-paint anywhere the mouse is released; re-render + snapshot once.
+  document.addEventListener('mouseup', () => {
+    if (_calDrag) { const v = _calDrag.view; _calDrag = null; renderSchedule(v); refreshValidation(); pushHistory(); }
+  });
 
   // Jump from a validation error to its cell.
   $('issues').addEventListener('click', (e) => {
