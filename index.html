@@ -477,6 +477,8 @@
   const SCHEDULE_TAGS = ['', 'ImiGA', 'HOMEmgr',
     ...SCHED_DAYS.flatMap(d => SCHED_SLOTS.map(s => `Exception:${d}-${s}`))];
   const CUSTOM_TAG = '__custom__';
+  // Class year (cohort) is a graduating year picked from a fixed range (plus any already present).
+  const COHORT_MIN_YEAR = 2024, COHORT_MAX_YEAR = 2046;
 
   // Inline SVG icons (no emoji — vector, themeable via currentColor) for dynamic controls.
   const _svg = (inner, fill) => `<svg class="icon" viewBox="0 0 24 24" ${fill ? 'fill="currentColor"' :
@@ -950,13 +952,14 @@
         return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
       }
       if (c === 'Cohort') {
-        // Pick from the cohorts already in the workbook, or add a new one via Custom…
-        const known = [...new Set((workbook.Students || []).map(s => norm(s.Cohort)).filter(Boolean))].sort();
-        if (v && !known.includes(v)) known.push(v);
+        // A plain year dropdown (no free-text): the fixed range plus any years already present.
+        const years = [];
+        for (let y = COHORT_MIN_YEAR; y <= COHORT_MAX_YEAR; y++) years.push(String(y));
+        const present = (workbook.Students || []).map(s => norm(s.Cohort)).filter(Boolean);
+        const all = [...new Set([...years, ...present, v].filter(Boolean))].sort();
         const opts = `<option value=""${v === '' ? ' selected' : ''}>— choose —</option>` +
-          known.map(x => `<option value="${escapeAttr(x)}"${x === v ? ' selected' : ''}>${escapeHtml(x)}</option>`).join('') +
-          `<option value="${CUSTOM_TAG}">Custom…</option>`;
-        return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
+          all.map(x => `<option value="${escapeAttr(x)}"${x === v ? ' selected' : ''}>${escapeHtml(x)}</option>`).join('');
+        return pickCell(i, c, opts);
       }
       if (c === 'Units')   // a list of units this tutor covers, e.g. "MD2; MD3"
         return `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(v)}" placeholder="MD2; MD3"></td>`;
