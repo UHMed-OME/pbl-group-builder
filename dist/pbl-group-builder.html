@@ -887,10 +887,67 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return norm(v).split(/[,;/]+/).map(s => s.trim()).filter(Boolean);
   }
 
+  // ---- Graceful import: tolerate imperfect headers, values, blank lines ----
+  const _normKey = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Map a header (however it's typed/labelled) → the canonical column name.
+  const HEADER_ALIASES = (() => {
+    const m = new Map();
+    Object.values(SCHEMA).forEach(def => (def.required || []).forEach(c => m.set(_normKey(c), c)));
+    Object.entries(COLUMN_LABELS).forEach(([canon, label]) => { const k = _normKey(label); if (!m.has(k)) m.set(k, canon); });
+    [['class', 'Cohort'], ['classyear', 'Cohort'], ['year', 'Cohort'], ['gradyear', 'Cohort'],
+     ['student', 'StudentID'], ['tutor', 'TutorID'], ['mentor', 'LCMentorID'],
+     ['role', 'ScheduleTag'], ['roles', 'ScheduleTag']].forEach(([k, v]) => { if (!m.has(k)) m.set(k, v); });
+    return m;
+  })();
+  // Map a sheet/tab name (however named) → the canonical sheet key.
+  const SHEET_ALIASES = (() => {
+    const m = new Map();
+    SHEET_ORDER.concat(['Groups']).forEach(s => m.set(_normKey(s), s));
+    Object.entries(SHEET_LABELS).forEach(([canon, label]) => { const k = _normKey(label); if (!m.has(k)) m.set(k, canon); });
+    [['student', 'Students'], ['tutor', 'Tutors'], ['conflict', 'Conflicts'],
+     ['blockout', 'Blockouts'], ['schedule', 'Blockouts'], ['history', 'PBLHistory'], ['tutortime', 'TutorTimes']]
+      .forEach(([k, v]) => { if (!m.has(k)) m.set(k, v); });
+    return m;
+  })();
+  const _yn = (v) => { const s = String(v).trim().toLowerCase();
+    if (['y', 'yes', 'true', 't', '1', '✓', '✔'].includes(s)) return 'Y';
+    if (['n', 'no', 'false', 'f', '0', '✗', '✘'].includes(s)) return 'N';
+    return String(v).trim(); };
+  const _gender = (v) => { const s = String(v).trim().toLowerCase();
+    if (['f', 'female', 'woman', 'w'].includes(s)) return 'F';
+    if (['m', 'male', 'man'].includes(s)) return 'M';
+    if (['x', 'other', 'nonbinary', 'non-binary', 'nb', 'o'].includes(s)) return 'X';
+    return String(v).trim(); };
+  const _day = (v) => ({ mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri' }[String(v).trim().toLowerCase().slice(0, 3)] || String(v).trim());
+  const _units = (v) => splitIds(v).map(x => /^md\d$/i.test(x) ? x.toUpperCase() : x).join('; ');
+  // Light, safe value cleanup for well-known columns (case/word variants → canonical form).
+  function normalizeValues(o) {
+    BOOL_COLS.forEach(c => { if (o[c]) o[c] = _yn(o[c]); });
+    if (o.Gender) o.Gender = _gender(o.Gender);
+    if (o.Day) o.Day = _day(o.Day);
+    if (o.Unit && /^md\d$/i.test(String(o.Unit).trim())) o.Unit = String(o.Unit).trim().toUpperCase();
+    if (o.Units) o.Units = _units(o.Units);
+    return o;
+  }
+  // Remap one row's keys to canonical columns + trim values.
+  function canonRow(r) {
+    const o = {};
+    for (const k in r) {
+      if (/^__EMPTY/.test(k)) continue;                       // blank header columns (xlsx)
+      const ck = HEADER_ALIASES.get(_normKey(k)) || String(k).trim();
+      let v = r[k]; if (typeof v === 'string') v = v.trim();
+      if (o[ck] === undefined || o[ck] === '') o[ck] = v;     // keep first non-empty if headers collide
+    }
+    return normalizeValues(o);
+  }
+
   // ---- Parsing: workbook -> {sheet: rows} --------------------------------
   function rowsFromSheet(ws) {
-    // defval:'' keeps empty cells as '' so columns stay aligned.
-    return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+    // defval:'' keeps empty cells as '' so columns stay aligned; then canonicalize headers/values
+    // and drop fully-blank rows so imperfect pastes (stray blank lines, odd headers) still load.
+    return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false })
+      .map(canonRow)
+      .filter(r => Object.keys(r).some(k => norm(r[k]) !== ''));
   }
 
   // A single table (from a .csv or a paste) — infer which sheet by its headers.
@@ -899,10 +956,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const match = SHEET_ORDER.find(name =>
       SCHEMA[name].required.every(c => headers.includes(c)) ||
       // lenient: at least the key column present
-      (SCHEMA[name].key && headers.includes(SCHEMA[name].key)));
+      (SCHEMA[name].key && headers.includes(SCHEMA[name].key))) || null;
     const out = {};
-    out[match || 'Students'] = rows;
-    return { match: match || 'Students', workbook: out };
+    out[match || 'Students'] = rows;   // best-guess bucket; `match` is null when unconfident
+    return { match, workbook: out };
   }
 
   function parseWorkbook(data, filename) {
@@ -913,8 +970,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     const out = {};
     for (const name of wb.SheetNames) {
-      const canonical = SHEET_ORDER.find(s => s.toLowerCase() === name.trim().toLowerCase());
-      out[canonical || name] = rowsFromSheet(wb.Sheets[name]);
+      const canonical = SHEET_ALIASES.get(_normKey(name)) || name.trim();
+      out[canonical] = rowsFromSheet(wb.Sheets[name]);
     }
     return out;
   }

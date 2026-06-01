@@ -263,4 +263,25 @@ assert.equal(md3.groups[0].day, 'Thu', 'MD3 uses the per-unit override day');
 assert.equal(md2.groups[0].students.length + md3.groups[0].students.length, 2, 'the student places in both unit solves');
 console.log('✓ per-unit tutor time override applies to its unit, default elsewhere');
 
+// --- Test 16: imperfect paste — variant headers, word values, blank lines, no-match ---
+const messy = [
+  'Student ID\tName\tGender\tImi\tResident\tLC Mentor\tSchedule\tClass Year',
+  'Z9\t Pat Ient \tFemale\tYes\tno\tT01\tImiGA\t2028',
+  '\t\t\t\t\t\t\t',                                  // stray blank line
+].join('\n');
+const mp = app.parsePasted(messy);
+assert.equal(mp.match, 'Students', 'variant/friendly headers still match Students');
+assert.equal(mp.rows.length, 1, 'fully-blank row dropped');
+const mrow = mp.rows[0];
+assert.equal(mrow.StudentID, 'Z9', '"Student ID" → StudentID');
+assert.equal(mrow.Name, 'Pat Ient', 'value trimmed');
+assert.equal(mrow.Gender, 'F', '"Female" → F');
+assert.equal(mrow.Imi, 'Y', '"Yes" → Y');
+assert.equal(mrow.Resident, 'N', '"no" → N');
+assert.equal(mrow.LCMentorID, 'T01', '"LC Mentor" → LCMentorID');
+assert.equal(mrow.ScheduleTag, 'ImiGA', '"Schedule" → ScheduleTag');
+assert.equal(mrow.Cohort, '2028', '"Class Year" → Cohort');
+assert.equal(app.parsePasted('Foo\tBar\n1\t2').match, null, 'unrecognized headers → no confident match');
+console.log('✓ imperfect pastes canonicalize headers/values and drop blank rows');
+
 console.log('\nALL TESTS PASSED');
