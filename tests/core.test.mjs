@@ -227,4 +227,25 @@ assert.equal(monG.students.length, 0, 'a unit block-out empties the auto-built g
 assert.equal(asol.violations.length, 0, 'the other auto-built group seats everyone cleanly');
 console.log('✓ auto-built groups take tutor times and honor block-outs (Groups sheet optional)');
 
+// --- Test 14: a student with MULTIPLE roles is blocked if ANY role overlaps ---
+const multiRole = {
+  Students: [
+    { StudentID:'M1', Name:'Multi', Gender:'F', Imi:'N', Resident:'Y', LCMentorID:'', ScheduleTag:'ImiGA; HOMEmgr', Cohort:'2028' },
+    { StudentID:'M2', Name:'Plain', Gender:'M', Imi:'N', Resident:'Y', LCMentorID:'', ScheduleTag:'',               Cohort:'2028' },
+  ],
+  Tutors: [
+    { TutorID:'TA', Name:'A', Units:'MD1', Day:'Mon', Start:'09:00', End:'11:00', MaxStudents:6, CoTutorOK:'Y' },
+    { TutorID:'TB', Name:'B', Units:'MD1', Day:'Tue', Start:'09:00', End:'11:00', MaxStudents:6, CoTutorOK:'Y' },
+  ],
+  Conflicts: [], Groups: [],
+  // Only the SECOND role (HOMEmgr) is blocked, and only on Tue — the multi-role student must avoid TB.
+  Blockouts: [{ Subject:'HOMEmgr', Day:'Tue', Start:'09:00', End:'11:00' }],
+  PBLHistory: [],
+};
+const mr = app.solve(multiRole, 'MD1', app.defaultWeights());
+const mGroupDay = id => (mr.groups.find(g => g.students.includes(id)) || {}).day;
+assert.equal(mr.violations.length, 0, 'multi-role case solves cleanly');
+assert.equal(mGroupDay('M1'), 'Mon', 'a second role\'s block-out still keeps the multi-role student out (Tue → Mon)');
+console.log('✓ a student\'s multiple roles are all honored by the schedule rule');
+
 console.log('\nALL TESTS PASSED');

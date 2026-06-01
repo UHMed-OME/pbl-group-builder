@@ -192,6 +192,28 @@
 
     /* --- Inline editor --- */
     .sheet-tools { display: flex; gap: 0.6rem; align-items: center; padding: 0.6rem 0; }
+    /* Prominent "Add row" button (top) + a full-width one under the table. */
+    .btn-addrow { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600;
+      color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent);
+      padding: 0.5rem 0.9rem; border-radius: 7px; }
+    .btn-addrow:hover { background: var(--accent); color: #fff; }
+    .btn-addrow .icon { width: 16px; height: 16px; }
+    .addrow-foot { display: flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%;
+      margin-top: 0.5rem; padding: 0.6rem; font-weight: 600; color: var(--accent);
+      background: transparent; border: 1.5px dashed var(--accent); border-radius: 7px; }
+    .addrow-foot:hover { background: var(--accent-bg); }
+    .addrow-foot .icon { width: 16px; height: 16px; }
+    /* Bulk multi-row edit bar */
+    .bulk-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0 0 0.6rem;
+      padding: 0.55rem 0.8rem; background: var(--accent-bg); border: 1px solid var(--accent); border-radius: 8px; font-size: 0.92rem; }
+    .bulk-bar .bulk-n b { color: var(--accent); }
+    .bulk-bar .bulk-set { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .bulk-bar select, .bulk-bar input { font: inherit; font-size: 0.9rem; padding: 0.35rem 0.45rem;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+    .bulk-bar button { font-size: 0.88rem; }
+    .bulk-bar .bulk-clear, .bulk-bar #bulkClear { margin-left: auto; }
+    th.sel-col, td.sel-cell { width: 1%; text-align: center; padding: 0 0.3rem; }
+    tr.selrow > td { background: var(--accent-bg); }
     td.cell-edit { padding: 0 0.4rem; }   /* horizontal gap so controls don't touch the next column */
     input.cell {
       width: 100%; min-width: 5rem; font: inherit; font-size: 0.92rem; border: 0;
@@ -203,6 +225,26 @@
       background: transparent; color: var(--fg); padding: 0.45rem 0.3rem; cursor: pointer;
     }
     select.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
+    /* Multi-role checklist dropdown (ScheduleTag) */
+    .rolepick { min-width: 7rem; }
+    .rolepick > summary { list-style: none; cursor: pointer; padding: 0.45rem 0.4rem; font-size: 0.92rem;
+      border-radius: 6px; display: flex; align-items: center; gap: 0.3rem; }
+    .rolepick > summary::-webkit-details-marker { display: none; }
+    .rolepick > summary::after { content: "▾"; color: var(--muted); margin-left: auto; font-size: 0.8em; }
+    .rolepick[open] > summary { background: var(--accent-bg); outline: 2px solid var(--accent); outline-offset: -2px; }
+    .rolepick-panel { padding: 0.35rem; margin-top: 0.2rem; border: 1px solid var(--line);
+      border-radius: 6px; background: var(--bg); box-shadow: var(--e2); }
+    .rolepick-item { display: flex; align-items: center; gap: 0.45rem; padding: 0.25rem 0.3rem;
+      white-space: nowrap; font-size: 0.9rem; cursor: pointer; border-radius: 4px; }
+    .rolepick-item:hover { background: var(--accent-bg); }
+    .rolepick-add { display: flex; gap: 0.3rem; margin-top: 0.3rem; padding-top: 0.35rem; border-top: 1px solid var(--line); }
+    .rolepick-add input { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.3rem 0.4rem;
+      border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--fg); }
+    .rolepick-add button { font-size: 0.82rem; padding: 0.3rem 0.6rem; }
+    .cal-addrole { display: inline-flex; gap: 0.3rem; align-items: center; }
+    .cal-addrole input { font: inherit; font-size: 0.92rem; padding: 0.4rem 0.5rem;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+    .muted { color: var(--muted); }
     /* Y/N toggle switch */
     .tog { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
     .tog input { opacity: 0; width: 0; height: 0; }
@@ -535,12 +577,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // Columns rendered as a Y/N toggle in the inline editor.
   const BOOL_COLS = new Set(['Imi', 'Resident', 'CoTutorOK']);
 
-  // ScheduleTag preset menu (spec §2: ImiGA, HOMEmgr, Exception:Day-Slot, or blank).
-  // Rendered as a dropdown in the editor instead of free text; "Custom…" falls back
-  // to a text box for anything not in this list.
-  // ScheduleTag is the student's special role; its block-out times live on the Schedule tab.
+  // ScheduleTag holds a student's special role(s) — multi-select in the editor, free to extend.
+  // Presets seed the checklist; its block-out times live on the Schedule tab.
   const SCHEDULE_TAGS = ['', 'ImiGA', 'HOMEmgr'];
-  const CUSTOM_TAG = '__custom__';
   // Class year (cohort) is a graduating year picked from a fixed range (plus any already present).
   const COHORT_MIN_YEAR = 2024, COHORT_MAX_YEAR = 2046;
 
@@ -551,6 +590,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     lock:   _svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
     unlock: _svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-1.8"/>'),
     trash:  _svg('<path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>'),
+    plus:   _svg('<path d="M12 5v14"/><path d="M5 12h14"/>'),
   };
 
   // ---- Display labels --------------------------------------------------
@@ -577,6 +617,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   const groupLabel = (gid) => { const m = /^G\s*0*(\d+)$/i.exec(norm(gid)); return m ? `Group ${m[1]}` : norm(gid); };
   const genderLabel = (g) => GENDER_LABELS[up(g)] || norm(g);
   const tagLabel = (tag) => { const t = norm(tag); return (t in TAG_LABELS) ? TAG_LABELS[t] : t; };
+  // A student's ScheduleTag may hold MULTIPLE roles (delimited like Units). Helpers:
+  let customRoles = new Set();   // roles the operator added in-session before assigning them
+  const studentRoles = (tag) => splitIds(tag).map(norm).filter(Boolean);
+  const roleLabels = (tag) => studentRoles(tag).map(r => tagLabel(r)).join(', ');
+  // Every role the UI offers: presets ∪ in-session additions ∪ any on a student or block-out.
+  function knownRoles() {
+    const set = new Set(SCHEDULE_TAGS.filter(t => t && !UNITS.includes(t)));
+    customRoles.forEach(r => set.add(r));
+    (workbook && workbook.Students || []).forEach(s => studentRoles(s.ScheduleTag).forEach(r => { if (!UNITS.includes(r)) set.add(r); }));
+    (workbook && workbook.Blockouts || []).forEach(b => { const x = norm(b.Subject); if (x && !UNITS.includes(x)) set.add(x); });
+    return [...set].sort();
+  }
   // "Mon · 9:00–11:00" for a group's meeting time (display).
   const slotLabel = (g) => { const d = norm(g.Day || g.day), s = norm(g.Start || (g.start != null ? minToTime(g.start) : '')),
     e = norm(g.End || (g.end != null ? minToTime(g.end) : '')); return (d || s) ? `${d ? d + ' · ' : ''}${s}${s && e ? '–' + e : ''}` : '—'; };
@@ -936,6 +988,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   let scheduleSubject = 'ImiGA'; // which subject's block-outs the Schedule calendar is editing
   let scheduleUnit = '';         // which unit's group times to overlay on the calendar
   let _calDrag = null;           // active drag-paint state on the calendar { view, on }
+  let schedAddingRole = false;   // showing the inline "new role" form on the Schedule tab
+  let selectedRows = new Set();   // bulk-edit selection (original workbook indices) for the active sheet
+  let selSheet = null;            // which sheet the current selection belongs to
+  let bulkCol = null;             // column the bulk-edit bar is targeting
 
   // Class filter for the roster editor (only meaningful with 2+ cohorts).
   function renderRosterFilter() {
@@ -1018,6 +1074,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const rows = workbook[sheet] || (workbook[sheet] = []);
     const cols = SCHEMA[sheet] ? SCHEMA[sheet].required : (rows[0] ? Object.keys(rows[0]) : []);
     const bad = badRows[sheet] || new Set();
+    if (selSheet !== sheet) { selectedRows = new Set(); selSheet = sheet; }   // selection is per-sheet
 
     const textCell = (i, c, v) =>
       `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(v)}"></td>`;
@@ -1029,12 +1086,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         return `<td class="cell-edit"><label class="tog"><input type="checkbox" data-r="${i}" data-c="${c}" data-bool="1"${on ? ' checked' : ''}><span class="track"></span></label></td>`;
       }
       if (c === 'ScheduleTag') {
-        // A value not in the preset list is a custom one — show it as a text box.
-        if (v && !SCHEDULE_TAGS.includes(v)) return textCell(i, c, v);
-        const opts = SCHEDULE_TAGS.map(t =>
-          `<option value="${escapeAttr(t)}"${t === v ? ' selected' : ''}>${escapeHtml(tagLabel(t))}</option>`).join('') +
-          `<option value="${CUSTOM_TAG}">Custom…</option>`;
-        return `<td class="cell-edit"><select class="cell tagsel" data-r="${i}" data-c="${c}">${opts}</select></td>`;
+        // Roles are multi-select (a student can be e.g. both Imi GA and HOME manager) and you can
+        // add a new role inline. A checklist dropdown — never a one-way text box.
+        const roles = studentRoles(v);
+        const summary = roles.length ? escapeHtml(roleLabels(v)) : '<span class="muted">— none —</span>';
+        const items = knownRoles().map(r =>
+          `<label class="rolechk-item"><input type="checkbox" class="rolechk" data-r="${i}" data-c="${c}" data-role="${escapeAttr(r)}"${roles.includes(r) ? ' checked' : ''}> ${escapeHtml(tagLabel(r))}</label>`).join('')
+          || `<div class="muted" style="padding:0.2rem 0.3rem">No roles yet</div>`;
+        return `<td class="cell-edit"><details class="rolepick"><summary><span class="rolesum">${summary}</span></summary>` +
+          `<div class="rolepick-panel">${items}` +
+          `<div class="rolepick-add"><input type="text" class="roleadd" data-r="${i}" data-c="${c}" placeholder="New role…" aria-label="New role name">` +
+          `<button type="button" class="roleaddbtn" data-r="${i}" data-c="${c}">Add</button></div>` +
+          `</div></details></td>`;
       }
       if (c === 'Cohort') {
         // A plain year dropdown (no free-text): the fixed range plus any years already present.
@@ -1053,25 +1116,51 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (fk && fk.ref)  return pickCell(i, c, refOptions(fk.ref, v));
       return textCell(i, c, v);
     };
-    const head = cols.map(c => `<th>${escapeHtml(colLabel(c))}</th>`).join('') + `<th class="actions-col"></th>`;
     // Optional class filter — only for sheets that carry a Cohort column. Keep the
     // ORIGINAL row index (data-r / data-del) so edits + delete hit the right workbook row.
     const hasCohort = (SCHEMA[sheet] ? SCHEMA[sheet].required : []).includes('Cohort');
     const filterCo = (hasCohort && rosterFilter) ? rosterFilter : '';
     const entries = rows.map((r, i) => [r, i]).filter(([r]) => !filterCo || norm(r.Cohort) === filterCo);
 
+    // Bulk-edit selection (only over currently-visible rows).
+    const visIdx = entries.map(([, i]) => i);
+    const selVis = visIdx.filter(i => selectedRows.has(i));
+    const allSel = visIdx.length > 0 && selVis.length === visIdx.length;
+    const bcols = cols.filter(c => !(SCHEMA[sheet] && SCHEMA[sheet].key === c));   // never bulk-set the ID key
+    if (bulkCol === null || !bcols.includes(bulkCol)) bulkCol = bcols[0] || null;
+    const bulkValHTML = (col) => {
+      if (BOOL_COLS.has(col)) return `<select id="bulkVal"><option value="Y">Yes</option><option value="N">No</option></select>`;
+      if (col === 'Cohort') { const ys = []; for (let y = COHORT_MIN_YEAR; y <= COHORT_MAX_YEAR; y++) ys.push(String(y));
+        return `<select id="bulkVal">${ys.map(x => `<option value="${x}">${x}</option>`).join('')}</select>`; }
+      const fk = (FIELD_KINDS[sheet] || {})[col];
+      if (fk && fk.enum) return `<select id="bulkVal">${enumOptions(fk.enum, '')}</select>`;
+      if (fk && fk.ref)  return `<select id="bulkVal">${refOptions(fk.ref, '')}</select>`;
+      return `<input id="bulkVal" type="text" placeholder="value…">`;
+    };
+
+    const head = `<th class="sel-col"><input type="checkbox" id="selAll" aria-label="Select all"${allSel ? ' checked' : ''}></th>` +
+      cols.map(c => `<th>${escapeHtml(colLabel(c))}</th>`).join('') + `<th class="actions-col"></th>`;
+
     const body = entries.map(([r, i]) =>
-      `<tr class="${bad.has(i) ? 'badrow' : ''}">` +
+      `<tr class="${bad.has(i) ? 'badrow' : ''}${selectedRows.has(i) ? ' selrow' : ''}">` +
+      `<td class="sel-cell"><input type="checkbox" class="rowsel" data-r="${i}" aria-label="Select row"${selectedRows.has(i) ? ' checked' : ''}></td>` +
       cols.map(c => cell(r, i, c)).join('') +
       `<td class="actions-cell"><button class="rowdel" data-del="${i}" aria-label="Delete row" title="Delete row">${ICONS.trash}</button></td></tr>`).join('');
 
     const shown = filterCo ? `${entries.length} of ${rows.length} · class ${escapeHtml(filterCo)}`
                            : `${rows.length} row${rows.length === 1 ? '' : 's'}`;
+    const bulkBar = selVis.length ? `<div class="bulk-bar"><span class="bulk-n"><b>${selVis.length}</b> selected</span>` +
+      `<span class="bulk-set">Set <select id="bulkCol">${bcols.map(c => `<option value="${escapeAttr(c)}"${c === bulkCol ? ' selected' : ''}>${escapeHtml(colLabel(c))}</option>`).join('')}</select> to ${bulkValHTML(bulkCol)}` +
+      `<button id="bulkApply" class="primary">Apply</button></span>` +
+      `<button id="bulkDelete">Delete selected</button><button id="bulkClear" class="ghost">Clear</button></div>` : '';
+
     view.innerHTML =
-      `<div class="sheet-tools"><button id="btnAddRow">+ Add row</button>` +
-      `<span class="hint" style="margin:0">${shown}</span></div>` +
+      `<div class="sheet-tools"><button id="btnAddRow" class="btn-addrow js-addrow">${ICONS.plus} Add row</button>` +
+      `<span class="hint" style="margin:0 0 0 auto">${shown}</span></div>` +
+      bulkBar +
       (cols.length
-        ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
+        ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
+          `<button class="addrow-foot js-addrow" id="btnAddRow2">${ICONS.plus} Add row</button>`
         : `<div class="empty">${sheet} is empty.</div>`);
 
     view.oninput = (e) => {
@@ -1080,20 +1169,24 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     };
     view.onchange = (e) => {
       const t = e.target;
+      if (t.classList && t.classList.contains('rowsel')) {
+        const i = +t.dataset.r; t.checked ? selectedRows.add(i) : selectedRows.delete(i);
+        renderSheet(); return;
+      }
+      if (t.id === 'selAll') { t.checked ? visIdx.forEach(i => selectedRows.add(i)) : visIdx.forEach(i => selectedRows.delete(i)); renderSheet(); return; }
+      if (t.id === 'bulkCol') { bulkCol = t.value; renderSheet(); return; }
       if (t.dataset && t.dataset.bool) {
         workbook[sheet][+t.dataset.r][t.dataset.c] = t.checked ? 'Y' : 'N';
         refreshValidation(); pushHistory();
-      } else if (t.classList && t.classList.contains('tagsel')) {
-        const r = +t.dataset.r, c = t.dataset.c;
-        if (t.value === CUSTOM_TAG) {
-          // Swap this cell to a free-text box for an off-menu value.
-          workbook[sheet][r][c] = '';
-          const td = t.closest('td');
-          td.innerHTML = `<input class="cell" type="text" data-r="${r}" data-c="${c}" value="" placeholder="custom tag…">`;
-          td.querySelector('input').focus();
-        } else {
-          workbook[sheet][r][c] = t.value;
-        }
+      } else if (t.classList && t.classList.contains('rolechk')) {
+        // Toggle one role on/off; keep the dropdown open by updating the summary in place.
+        const r = +t.dataset.r, c = t.dataset.c, role = t.dataset.role;
+        let roles = studentRoles(workbook[sheet][r][c]);
+        if (t.checked) { if (!roles.includes(role)) roles.push(role); }
+        else roles = roles.filter(x => x !== role);
+        workbook[sheet][r][c] = roles.join('; ');
+        const det = t.closest('details'); const sum = det && det.querySelector('.rolesum');
+        if (sum) sum.innerHTML = roles.length ? escapeHtml(roleLabels(roles.join('; '))) : '<span class="muted">— none —</span>';
         refreshValidation(); pushHistory();
       } else if (t.classList && t.classList.contains('pick')) {
         workbook[sheet][+t.dataset.r][t.dataset.c] = t.value;
@@ -1103,7 +1196,24 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }
     };
     view.onclick = (e) => {
-      if (e.target.id === 'btnAddRow') { addRow(); return; }
+      if (e.target.closest && e.target.closest('.js-addrow')) { addRow(); return; }
+      const addBtn = e.target.closest && e.target.closest('.roleaddbtn');
+      if (addBtn) { addRoleFromInput(sheet, +addBtn.dataset.r, addBtn.dataset.c, addBtn.closest('.rolepick-panel')); return; }
+      if (e.target.id === 'bulkClear') { selectedRows = new Set(); renderSheet(); return; }
+      if (e.target.id === 'bulkApply') {
+        const val = (view.querySelector('#bulkVal') || {}).value || '';
+        selVis.forEach(i => { workbook[sheet][i][bulkCol] = val; });
+        renderSheet(); refreshValidation(); pushHistory();
+        toast(`Set ${colLabel(bulkCol)} on ${selVis.length} row(s)`); return;
+      }
+      if (e.target.id === 'bulkDelete') {
+        confirmDialog(`Delete ${selVis.length} selected row(s) from ${sheetLabel(sheet)}? You can undo with Ctrl+Z.`, 'Delete').then(ok => {
+          if (!ok) return;
+          [...selVis].sort((a, b) => b - a).forEach(i => workbook[sheet].splice(i, 1));   // descending so indices hold
+          selectedRows = new Set(); renderSheet(); refreshValidation(); pushHistory();
+        });
+        return;
+      }
       const del = e.target.closest && e.target.closest('button.rowdel');
       if (del) {
         const ri = +del.dataset.del;
@@ -1115,15 +1225,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         });
       }
     };
+    view.onkeydown = (e) => {
+      if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('roleadd')) {
+        e.preventDefault();
+        addRoleFromInput(sheet, +e.target.dataset.r, e.target.dataset.c, e.target.closest('.rolepick-panel'));
+      }
+    };
   }
 
   // ---- Schedule calendar (edits the Blockouts sheet) ---------------------
   // Subjects to block out: special roles (presets + any in the data) and the units MD1–MD7.
   function scheduleSubjects() {
-    const roleSet = new Set(['ImiGA', 'HOMEmgr']);
-    (workbook.Students || []).forEach(s => { const t = norm(s.ScheduleTag); if (t && !UNITS.includes(t)) roleSet.add(t); });
-    (workbook.Blockouts || []).forEach(r => { const x = norm(r.Subject); if (x && !UNITS.includes(x)) roleSet.add(x); });
-    return [...[...roleSet].sort().map(r => ({ value: r, label: tagLabel(r) || r, group: 'Role' })),
+    return [...knownRoles().map(r => ({ value: r, label: tagLabel(r) || r, group: 'Role' })),
             ...UNITS.map(u => ({ value: u, label: u, group: 'Unit' }))];
   }
   // Hour cells (`day|HH:00`) blocked for a subject (covers multi-hour imported ranges too).
@@ -1208,7 +1321,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         (overlapN ? ` — <span class="cal-warn">those slots become unusable</span>` : '') +
         (overlapN && usable < nStu ? ` · <span class="cal-warn">⚠ only ${usable} usable seat(s) for ${nStu} students — short by ${nStu - usable}</span>` : '');
     } else {
-      const roleN = (workbook.Students || []).filter(s => norm(s.ScheduleTag) === scheduleSubject).length;
+      const roleN = (workbook.Students || []).filter(s => studentRoles(s.ScheduleTag).includes(scheduleSubject)).length;
       impact = `<b>${roleN}</b> student(s) have this role · overlaps <b>${overlapN}</b> of ${escapeHtml(scheduleUnit || '—')}'s ${grps.length} group(s)`;
     }
 
@@ -1217,6 +1330,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     view.innerHTML =
       `<div class="cal-bar"><label>Block out times for&nbsp;<select id="schedSubject">` +
         `<optgroup label="Roles">${optsOf('Role')}</optgroup><optgroup label="Units">${optsOf('Unit')}</optgroup></select></label>` +
+        (schedAddingRole
+          ? `<span class="cal-addrole"><input type="text" id="schedRoleName" placeholder="New role name…" aria-label="New role name"><button id="schedRoleSave" class="ghost">Add</button><button id="schedRoleCancel" class="ghost">Cancel</button></span>`
+          : `<button id="schedAddRole" class="ghost" title="Add a new role">+ Add role</button>`) +
         unitPick +
         `<button id="schedClear" class="ghost"${ranges.length ? '' : ' disabled'}>Clear blocks</button></div>` +
       `<div class="cal-impact">${impact}</div>` +
@@ -1232,11 +1348,28 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     view.onmousedown = (e) => { const c = e.target.closest && e.target.closest('.cal-cell'); if (!c) return;
       e.preventDefault(); _calDrag = { view, on: !c.classList.contains('blocked') }; paint(c, _calDrag.on); };
     view.onmouseover = (e) => { if (!_calDrag) return; const c = e.target.closest && e.target.closest('.cal-cell'); if (c) paint(c, _calDrag.on); };
-    view.onclick = (e) => { if (e.target.id === 'schedClear') {
-      workbook.Blockouts = (workbook.Blockouts || []).filter(r => norm(r.Subject) !== scheduleSubject);
-      renderSchedule(view); refreshValidation(); pushHistory(); } };
+    const saveNewRole = () => {
+      const r = norm((view.querySelector('#schedRoleName') || {}).value);
+      schedAddingRole = false;
+      if (r) { customRoles.add(r); scheduleSubject = r; }
+      renderSchedule(view);
+    };
+    view.onclick = (e) => {
+      if (e.target.id === 'schedClear') {
+        workbook.Blockouts = (workbook.Blockouts || []).filter(r => norm(r.Subject) !== scheduleSubject);
+        renderSchedule(view); refreshValidation(); pushHistory();
+      } else if (e.target.id === 'schedAddRole') {
+        schedAddingRole = true; renderSchedule(view); const inp = view.querySelector('#schedRoleName'); if (inp) inp.focus();
+      } else if (e.target.id === 'schedRoleSave') { saveNewRole(); }
+      else if (e.target.id === 'schedRoleCancel') { schedAddingRole = false; renderSchedule(view); }
+    };
     const focusCell = (d, st) => { const c = view.querySelector(`.cal-cell[data-day="${d}"][data-start="${st}"]`); if (c) c.focus(); };
     view.onkeydown = (e) => {
+      if (e.target.id === 'schedRoleName') {
+        if (e.key === 'Enter') { e.preventDefault(); saveNewRole(); }
+        else if (e.key === 'Escape') { schedAddingRole = false; renderSchedule(view); }
+        return;
+      }
       const c = e.target.closest && e.target.closest('.cal-cell'); if (!c) return;
       const d = c.dataset.day, st = c.dataset.start, di = DAYS.indexOf(d), hi = HOURS.indexOf(st);
       if (e.key === ' ' || e.key === 'Enter') {
@@ -1259,6 +1392,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     // If a class filter is active and this sheet has a Cohort, seed it so the new row shows.
     if (rosterFilter && cols.includes('Cohort')) blank.Cohort = rosterFilter;
     (workbook[activeTab] = workbook[activeTab] || []).push(blank);
+    renderSheet(); refreshValidation(); pushHistory();
+  }
+
+  // Add a brand-new role from the inline "New role…" box, assign it to this student, re-render.
+  function addRoleFromInput(sheet, r, c, panel) {
+    const inp = panel && panel.querySelector('.roleadd');
+    const name = norm(inp && inp.value);
+    if (!name) { inp && inp.focus(); return; }
+    customRoles.add(name);
+    const roles = studentRoles(workbook[sheet][r][c]);
+    if (!roles.includes(name)) roles.push(name);
+    workbook[sheet][r][c] = roles.join('; ');
     renderSheet(); refreshValidation(); pushHistory();
   }
 
@@ -1390,7 +1535,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const b = (blocks.get(subject) || []).find(b => b.day === group.day && b.start < group.end && group.start < b.end);
       return b ? { subject, day: b.day, start: b.start, end: b.end } : null;
     };
-    return hitIn(norm(student.ScheduleTag)) || hitIn(idx.unit);
+    // A student can hold several roles — any one of them blocking the slot disqualifies the group.
+    for (const role of studentRoles(student.ScheduleTag)) { const h = hitIn(role); if (h) return h; }
+    return hitIn(idx.unit);
   }
   function scheduleFits(student, group, idx) { return !scheduleBlockHit(student, group, idx); }
 
@@ -1690,7 +1837,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const chips = g.students.map(sid => {
         const s = students.get(sid) || {};
         const tags = [up(s.Imi) === 'Y' ? 'Imi Hoʻōla' : '', up(s.Resident) === 'N' ? 'Non-resident' : '',
-                      genderLabel(s.Gender), norm(s.ScheduleTag) ? tagLabel(s.ScheduleTag) : ''].filter(Boolean).join(' · ');
+                      genderLabel(s.Gender), roleLabels(s.ScheduleTag)].filter(Boolean).join(' · ');
         const f = flags.get(sid), wn = warns.get(sid), lk = locked.has(sid);
         const tip = f || wn, nm = norm(s.Name) || sid;
         return `<div class="chip${f ? ' flag' : wn ? ' warn' : ''}${lk ? ' locked' : ''}" draggable="true" data-sid="${escapeAttr(sid)}"` +
@@ -1803,7 +1950,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const lis = g.students.map(sid => {
         const s = studById.get(sid) || {};
         const tags = [up(s.Imi) === 'Y' ? 'Imi Hoʻōla' : '', up(s.Resident) === 'N' ? 'Non-resident' : '',
-                      norm(s.ScheduleTag) ? tagLabel(s.ScheduleTag) : ''].filter(Boolean).join(' · ');
+                      roleLabels(s.ScheduleTag)].filter(Boolean).join(' · ');
         return `<li>${escapeHtml(norm(s.Name) || sid)}${tags ? ` <span class="rtags">— ${escapeHtml(tags)}</span>` : ''}</li>`;
       }).join('');
       return `<section class="rgroup"><h2>${escapeHtml(groupLabel(g.GroupID))} · ${escapeHtml(slotLabel(g))} · ${escapeHtml(tut)}` +
@@ -1817,6 +1964,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // Shared load pipeline: validate, render the editor, enable export.
   function loadWorkbook(wb, label, focusSheet) {
     workbook = wb;
+    customRoles = new Set();           // in-session role additions reset with a fresh workbook
     const res = validate(workbook);
     badRows = res.badRows;
     activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
