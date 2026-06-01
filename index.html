@@ -61,8 +61,10 @@
     /* Icon transport bar (now lives in the tab row, right side) */
     .transport { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
     .iconbtn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
-      font-size: 1.15rem; padding: 0; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+      gap: 0.4rem; font-size: 1.15rem; padding: 0; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
       border-radius: 8px; cursor: pointer; line-height: 1; }
+    .iconbtn:has(.btn-lbl) { width: auto; padding: 0 0.8rem; }   /* labeled actions size to content */
+    .btn-lbl { font-size: 0.9rem; font-weight: 600; }
     .iconbtn:hover { background: var(--accent-bg); }
     .iconbtn:disabled { opacity: 0.4; cursor: not-allowed; }
     .iconbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -102,7 +104,10 @@
     input[type=file] { display: none; }
     .footnote { color: var(--muted); font-size: 0.8rem; text-align: center; margin: 2.5rem 0 0; }
     #validation { margin: 1.1rem 0; }
-    .vsummary { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem; font-weight: 600; }
+    .vsummary { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.6rem; font-weight: 600; }
+    .vlegend { font-weight: 400; font-size: 0.82rem; color: var(--muted); display: inline-flex; align-items: center; gap: 0.25rem; }
+    .vlegend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+    .vlegend .dot.err { background: var(--err); } .vlegend .dot.warn { background: var(--warn); }
     .pill { padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
     .pill.ok { background: var(--accent-bg); color: var(--ok); }
     .pill.err { background: var(--err-bg); color: var(--err); }
@@ -294,6 +299,11 @@
     .wrow .wlab b { color: var(--fg); }
     .wrow input[type=range] { width: 100%; height: 6px; accent-color: var(--accent); }
     #scorecard { margin: 1.2rem 0; }
+    .readiness { margin: 0.8rem 0; }
+    .example-badge { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; justify-content: space-between;
+      margin: 0 0 0.9rem; padding: 0.5rem 0.8rem; font-size: 0.88rem; color: var(--brand-dark);
+      background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 8px; }
+    .example-badge .example-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
     .sc-hard { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.7rem; }
     .issue.err, .issue.warn { margin-top: 0.6rem; }
     /* Soft-metric status cards */
@@ -372,6 +382,8 @@
     @media (max-width: 720px) {
       header { padding: 0.7rem 1rem; }
       .apptabs { padding: 0 1rem; }
+      .btn-lbl { display: none; }                                   /* compact icon-only toolbar on phones */
+      .iconbtn:has(.btn-lbl) { width: 40px; padding: 0; }
       main { padding: 1rem 1rem 4rem; }
       h1 { font-size: 1.15rem; }
       .apptab { padding: 0.65rem 0.8rem; }
@@ -403,17 +415,17 @@
       <span id="loadedName" class="tag"></span>
       <div class="transport" role="toolbar" aria-label="Actions">
       <button id="btnExample" class="iconbtn" title="Load example data" aria-label="Load example data">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v4M3 5h4"/><path d="M18 14v4M16 16h4"/><path d="M12 5l2.4 5.6L20 13l-5.6 2.4L12 21l-2.4-5.6L4 13l5.6-2.4z"/></svg>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v4M3 5h4"/><path d="M18 14v4M16 16h4"/><path d="M12 5l2.4 5.6L20 13l-5.6 2.4L12 21l-2.4-5.6L4 13l5.6-2.4z"/></svg><span class="btn-lbl">Example</span>
       </button>
       <label class="iconbtn" title="Open workbook (.xlsx / .csv)" aria-label="Open workbook">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a1 1 0 0 1 1-1h4l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a1 1 0 0 1 1-1h4l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg><span class="btn-lbl">Open</span>
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
       </label>
       <button id="btnPaste" class="iconbtn" title="Paste rows from Excel / Google Sheets" aria-label="Paste rows">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg><span class="btn-lbl">Paste</span>
       </button>
       <button id="btnTemplate" class="iconbtn" title="Download blank template" aria-label="Download blank template">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span class="btn-lbl">Template</span>
       </button>
       <span class="tsep" aria-hidden="true"></span>
       <button id="btnUndo" class="iconbtn" disabled title="Undo (Ctrl+Z)" aria-label="Undo">
@@ -424,7 +436,7 @@
       </button>
       <span class="tsep" aria-hidden="true"></span>
       <button id="btnExport" class="iconbtn primary" disabled title="Export workbook (.xlsx)" aria-label="Export workbook">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/></svg>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/></svg><span class="btn-lbl">Export</span>
       </button>
       </div>
     </div>
@@ -432,6 +444,10 @@
 
   <main>
     <section id="view-roster" class="view" role="tabpanel">
+      <div id="exampleBadge" class="example-badge hidden">
+        <span><b>EXAMPLE data</b> — not a real roster. Edit freely to explore, then load your own file or start from the template.</span>
+        <span class="example-actions"><button id="exBadgeOpen" class="ghost">Open file</button><button id="exBadgeTemplate" class="ghost">Template</button></span>
+      </div>
       <div id="pastePanel" class="hidden">
         <p class="hint">Copy rows from Excel or Google Sheets (include the header row) and paste below.
           One sheet at a time — the matching sheet is detected from the column headers.</p>
@@ -461,7 +477,7 @@
       </div>
 
       <div id="placeholder" class="empty">
-        Loading example data… or use the toolbar above to load a workbook or paste rows.
+        Loading example data… New here? <b>Start from the template</b> (toolbar above), fill it in, then open it back here. You can also paste rows from Excel/Sheets.
       </div>
 
       <div id="rosterFoot" class="step-foot hidden">
@@ -482,6 +498,7 @@
           <p class="hint" style="margin:0.6rem 0 0">Soft-preference weights — higher means the solver tries harder to satisfy that preference. Defaults work for most cohorts.</p>
           <div class="wgrid" id="weights"></div>
         </details>
+        <div id="readiness" class="readiness hidden" aria-live="polite"></div>
         <div id="scorecard" aria-live="polite"></div>
         <div id="boardActions" class="board-actions hidden">
           <span class="hint" style="margin:0">Drag students to adjust; lock to keep on re-solve.</span>
@@ -777,6 +794,7 @@
 
   // ---- State -------------------------------------------------------------
   let workbook = null;       // { Students:[...], Tutors:[...], ... } row objects
+  let usingExample = false;  // is the loaded workbook the built-in demo cohort? (drives the badge)
   let activeTab = null;
   let badRows = {};          // sheet -> Set of row indices flagged by validation
 
@@ -1033,7 +1051,10 @@
     // Quiet on success: only show the validation block when there's something to fix.
     if (nE + nW === 0) { v.classList.add('hidden'); $('vsummary').innerHTML = ''; $('issues').innerHTML = ''; return; }
     v.classList.remove('hidden');
-    $('vsummary').innerHTML = '';   // status lives on the summary card — no duplicate banner
+    $('vsummary').innerHTML =
+      (nE ? `<span class="pill err">${nE} to fix</span>` : '') +
+      (nW ? `<span class="pill warn">${nW} warning${nW > 1 ? 's' : ''}</span>` : '') +
+      `<span class="vlegend"><b class="dot err"></b> red blocks building &nbsp; <b class="dot warn"></b> amber is advisory</span>`;
     const row = (cls, x) => {
       const loc = (x.sheet)
         ? `<button class="loc loclink" data-sheet="${escapeAttr(x.sheet)}" data-ri="${x.ri}">${escapeHtml(x.loc)}</button>: `
@@ -1816,7 +1837,34 @@
       $('weights').dataset.built = '1';
       $('weights').oninput = (e) => { const k = e.target.dataset.k; if (k) $('wv_' + k).textContent = e.target.value; };
     }
+    $('unitSel').onchange = updateReadiness;
+    $('cohortSel').onchange = updateReadiness;
     $('solver').classList.remove('hidden');
+    updateReadiness();
+  }
+  // Proactive pre-solve check: surface the hidden tutors→groups dependency (and capacity) before
+  // the operator hits the dead-end. Advisory only — doesn't block Solve.
+  function updateReadiness() {
+    const el = $('readiness'); if (!el) return;
+    if (!workbook) { el.classList.add('hidden'); return; }
+    const unit = norm($('unitSel').value); const u = unit.toUpperCase();
+    if (!unit) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+    const tutors = (workbook.Tutors || []).filter(t => {
+      if (!norm(t.TutorID)) return false;
+      const us = splitIds(t.Units).map(x => x.toUpperCase());
+      return !us.length || us.includes(u);
+    });
+    const co = $('cohortField').hidden ? '' : norm($('cohortSel').value);
+    const students = (workbook.Students || []).filter(s => !co || norm(s.Cohort) === co);
+    const msgs = [];
+    if (!tutors.length) msgs.push(`No tutors are assigned to ${unit} — add tutors and tick ${unit} in their Units on the Tutors tab.`);
+    if (!students.length) msgs.push(`No students${co ? ' in class ' + co : ''} to place — add students on the Students tab.`);
+    if (tutors.length && students.length) {
+      const seats = tutors.reduce((a, t) => { const n = Number(t.MaxStudents); return a + (isFinite(n) && n > 0 ? n : 6); }, 0);
+      if (seats < students.length) msgs.push(`Only ${seats} seat(s) across ${tutors.length} ${unit} group(s) for ${students.length} students — raise Max Students or add a tutor.`);
+    }
+    el.innerHTML = msgs.map(m => `<div class="issue warn">${escapeHtml(m)}</div>`).join('');
+    el.classList.toggle('hidden', !msgs.length);
   }
   function getWeights() {
     const w = {}; SOFT.forEach(s => { const el = $('w_' + s.key); w[s.key] = el ? Number(el.value) : s.def; });
@@ -1859,13 +1907,17 @@
 
     const hard = hardChecks.map(h =>
       `<span class="pill ${h.ok ? 'ok' : 'err'}">${h.ok ? '✓' : '✗'} ${escapeHtml(h.rule)}${h.ok ? '' : ` (${h.violations})`}</span>`).join('');
-    const card = (label, val, good) =>
-      `<div class="sc-card${good ? ' good' : ''}"><div class="sc-val">${val}</div><div class="sc-lab">${escapeHtml(label)}</div></div>`;
+    // Self-describing cards: a green ✓ + plain phrase when the goal is met; otherwise the count
+    // with a plain-language label (no solver jargon, direction always explicit).
+    const num = (v) => (typeof v === 'number' && v % 1) ? Math.round(v * 10) / 10 : v;
+    const card = (good, goodLabel, val, badLabel) =>
+      `<div class="sc-card${good ? ' good' : ''}"><div class="sc-val">${good ? '✓' : num(val)}</div>` +
+      `<div class="sc-lab">${escapeHtml(good ? goodLabel : badLabel)}</div></div>`;
     const cards =
-      card('Imi Hoʻōla doubled up', m.imiOver, m.imiOver === 0) +
-      card('Non-residents over share', m.nonResSpread, m.nonResSpread === 0) +
-      card('Gender imbalance', m.genderImb, m.genderImb <= 1) +
-      card('Repeat groupmate pairs', m.repeatPairs, m.repeatPairs === 0);
+      card(m.imiOver === 0,      'Imi Hoʻōla spread out',  m.imiOver,      `${m.imiOver} group(s) with 2+ Imi Hoʻōla`) +
+      card(m.nonResSpread === 0, 'Non-residents spread out', m.nonResSpread, 'Non-residents uneven across groups') +
+      card(m.genderImb <= 1,     'Gender balanced',        m.genderImb,    `Gender off by ${num(m.genderImb)}`) +
+      card(m.repeatPairs === 0,  'No repeat groupmates',   m.repeatPairs,  `${m.repeatPairs} repeat groupmate pair(s)`);
     const flagList = [...flags.entries()], warnList = [...warns.entries()];
     // Quiet on success: the green hard-rule pills already signal "all good" — only add
     // a message block when there's a hard-rule break, a conflict, or a capacity shortfall.
@@ -2019,8 +2071,9 @@
   }
 
   // Shared load pipeline: validate, render the editor, enable export.
-  function loadWorkbook(wb, label, focusSheet) {
+  function loadWorkbook(wb, label, focusSheet, isExample) {
     workbook = wb;
+    usingExample = !!isExample;        // drives the "EXAMPLE data" badge
     customRoles = new Set();           // in-session role additions reset with a fresh workbook
     const res = validate(workbook);
     badRows = res.badRows;
@@ -2041,6 +2094,7 @@
     $('rosterFoot').classList.remove('hidden');    // show the "Build groups →" nudge
     $('btnExport').disabled = false;
     if (label) $('loadedName').textContent = label;
+    $('exampleBadge').classList.toggle('hidden', !usingExample);
     dirty = false;        // freshly loaded data matches its source
     showView('roster');   // loading data brings you to the Roster view
   }
@@ -2055,6 +2109,7 @@
     });
     $('view-roster').hidden = v !== 'roster';
     $('view-groups').hidden = v !== 'groups';
+    if (v === 'groups' && workbook) updateReadiness();   // refresh the pre-solve check on entry
   }
 
   // ---- In-app confirmation dialog (returns a Promise<boolean>) ------------
@@ -2082,10 +2137,10 @@
 
   // Transient toast for completed actions (Solve / Export / Print).
   let _toastTimer = null;
-  function toast(msg) {
+  function toast(msg, ms) {
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
     if (_toastTimer) clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2600);
   }
 
   // ---- Wiring ------------------------------------------------------------
@@ -2133,12 +2188,15 @@
 
   // Prefill the editor with the ~80-student demo cohort (freshly generated each time).
   $('btnExample').onclick = async () => {
-    if (await confirmReplace()) loadWorkbook(makeExample(), 'Example data (80 students) — edit freely');
+    if (await confirmReplace()) loadWorkbook(makeExample(), 'Example data (80 students) — edit freely', null, true);
   };
 
   $('btnTemplate').onclick = () => {
     download(buildWorkbook(TEMPLATE), 'PBL_template.xlsx');
   };
+  // EXAMPLE-badge shortcuts → reuse the toolbar actions.
+  $('exBadgeOpen').onclick = () => $('fileInput').click();
+  $('exBadgeTemplate').onclick = () => $('btnTemplate').click();
 
   $('fileInput').onchange = async (e) => {
     const file = e.target.files[0];
@@ -2171,6 +2229,13 @@
     try {
       const { rows, match } = parsePasted($('pasteText').value);
       if (!rows.length) { $('pasteMsg').textContent = 'No rows found — include a header row.'; return; }
+      if (!match) {
+        const have = Object.keys(rows[0] || {}).filter(Boolean).join(', ') || '(none)';
+        $('pasteMsg').innerHTML = `These columns weren't recognized (${escapeHtml(have)}). ` +
+          `A sheet is detected by its key header — <b>StudentID</b> (Students), <b>TutorID</b> (Tutors), ` +
+          `or <b>TypeA_ID/TypeB_ID/Kind</b> (Conflicts). Tip: download the <b>Template</b> to copy exact headers.`;
+        return;
+      }
       if (!(await confirmReplace())) return;
       const wb = workbook || {};
       wb[match] = rows;                       // replace the matched sheet (other sheets kept)
@@ -2271,7 +2336,9 @@
     const name = solved ? `PBL_${lastResult.unit}${co ? '_' + co : ''}_results.xlsx` : 'PBL_export.xlsx';
     download(exportWorkbook(), name);
     dirty = false;        // saved to disk
-    toast(solved ? `Exported ${name} (with results + history)` : `Exported ${name}`);
+    toast(solved
+      ? `Saved ${name} — this is your new master file (results + history). Open it next unit.`
+      : `Saved ${name} — this is your new master file. Open it next unit.`, 5200);
   }
   $('btnExport').onclick = doExport;
   $('btnExportStep').onclick = doExport;
@@ -2286,7 +2353,7 @@
   // Start with example data loaded so the operator sees a working editor + board
   // immediately. Gated on a real DOM (skipped under the headless test harness).
   if (typeof document !== 'undefined' && document.body) {
-    loadWorkbook(makeExample(), 'Example data (80 students) — edit freely');
+    loadWorkbook(makeExample(), 'Example data (80 students) — edit freely', null, true);
   }
   </script>
 </body>
