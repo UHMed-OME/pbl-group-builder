@@ -137,10 +137,10 @@
     .filter-bar select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line);
       border-radius: 6px; background: var(--bg); color: var(--fg); }
     /* Schedule week calendar (block-out editor) */
-    .cal-bar { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 0.6rem 0; }
+    .cal-bar { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 0.6rem 0.8rem; }
     .cal-bar select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line);
       border-radius: 6px; background: var(--bg); color: var(--fg); }
-    .cal-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; width: fit-content; max-width: 100%; }
+    .cal-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; width: fit-content; max-width: calc(100% - 1.6rem); margin: 0 0.8rem; }
     table.cal { border-collapse: collapse; }
     table.cal th, table.cal td { border: 1px solid var(--line); }
     table.cal th { background: var(--surface); font-weight: 700; color: var(--brand-dark); font-size: 0.85rem; padding: 0.4rem 0.7rem; }
@@ -153,9 +153,9 @@
     td.cal-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
     .cal-overlay { font-size: 0.92rem; }
     .cal-overlay select { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
-    .cal-impact { font-size: 0.9rem; color: var(--muted); margin: 0 0 0.6rem; } .cal-impact b { color: var(--fg); }
+    .cal-impact { font-size: 0.9rem; color: var(--muted); margin: 0 0.8rem 0.6rem; } .cal-impact b { color: var(--fg); }
     .cal-warn { color: var(--warn); font-weight: 600; }
-    .cal-legend { font-size: 0.8rem; color: var(--muted); margin-top: 0.6rem; display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+    .cal-legend { font-size: 0.8rem; color: var(--muted); margin: 0.6rem 0.8rem 0.8rem; display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
     .cal-legend .lg { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -2px; }
     .cal-legend .lg-block { background: var(--err); } .cal-legend .lg-group { background: var(--accent-bg); }
     .cal-legend .lg-coll { background: repeating-linear-gradient(45deg, var(--err), var(--err) 3px, var(--warn) 3px, var(--warn) 6px); }
