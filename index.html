@@ -1045,26 +1045,30 @@
     const textCell = (i, c, v) =>
       `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(v)}"></td>`;
 
+    // A checklist dropdown for a delimited multi-value column (roles, tutor units). `options` are the
+    // togglable values; `addable` shows an inline "new value" field (used by roles, not by units).
+    const multiPickCell = (i, c, v, options, addable, emptyText) => {
+      const chosen = studentRoles(v);
+      const summary = chosen.length ? escapeHtml(chosen.map(x => tagLabel(x)).join(', ')) : '<span class="muted">— none —</span>';
+      const items = options.map(o =>
+        `<label class="rolechk-item"><input type="checkbox" class="rolechk" data-r="${i}" data-c="${c}" data-role="${escapeAttr(o)}"${chosen.includes(o) ? ' checked' : ''}> ${escapeHtml(tagLabel(o))}</label>`).join('')
+        || `<div class="muted" style="padding:0.2rem 0.3rem">${escapeHtml(emptyText || 'None')}</div>`;
+      const add = addable
+        ? `<div class="rolepick-add"><input type="text" class="roleadd" data-r="${i}" data-c="${c}" placeholder="New role…" aria-label="New role name">` +
+          `<button type="button" class="roleaddbtn" data-r="${i}" data-c="${c}">Add</button></div>`
+        : '';
+      return `<td class="cell-edit"><details class="rolepick"><summary><span class="rolesum">${summary}</span></summary>` +
+        `<div class="rolepick-panel">${items}${add}</div></details></td>`;
+    };
+
     const cell = (r, i, c) => {
       const v = norm(r[c]);
       if (BOOL_COLS.has(c)) {
         const on = up(r[c]) === 'Y';
         return `<td class="cell-edit"><label class="tog"><input type="checkbox" data-r="${i}" data-c="${c}" data-bool="1"${on ? ' checked' : ''}><span class="track"></span></label></td>`;
       }
-      if (c === 'ScheduleTag') {
-        // Roles are multi-select (a student can be e.g. both Imi GA and HOME manager) and you can
-        // add a new role inline. A checklist dropdown — never a one-way text box.
-        const roles = studentRoles(v);
-        const summary = roles.length ? escapeHtml(roleLabels(v)) : '<span class="muted">— none —</span>';
-        const items = knownRoles().map(r =>
-          `<label class="rolechk-item"><input type="checkbox" class="rolechk" data-r="${i}" data-c="${c}" data-role="${escapeAttr(r)}"${roles.includes(r) ? ' checked' : ''}> ${escapeHtml(tagLabel(r))}</label>`).join('')
-          || `<div class="muted" style="padding:0.2rem 0.3rem">No roles yet</div>`;
-        return `<td class="cell-edit"><details class="rolepick"><summary><span class="rolesum">${summary}</span></summary>` +
-          `<div class="rolepick-panel">${items}` +
-          `<div class="rolepick-add"><input type="text" class="roleadd" data-r="${i}" data-c="${c}" placeholder="New role…" aria-label="New role name">` +
-          `<button type="button" class="roleaddbtn" data-r="${i}" data-c="${c}">Add</button></div>` +
-          `</div></details></td>`;
-      }
+      // Roles: multi-select checklist (a student can hold several), with an inline add. Never a text box.
+      if (c === 'ScheduleTag') return multiPickCell(i, c, v, knownRoles(), true, 'No roles yet');
       if (c === 'Cohort') {
         // A plain year dropdown (no free-text): the fixed range plus any years already present.
         const years = [];
@@ -1075,8 +1079,8 @@
           all.map(x => `<option value="${escapeAttr(x)}"${x === v ? ' selected' : ''}>${escapeHtml(x)}</option>`).join('');
         return pickCell(i, c, opts);
       }
-      if (c === 'Units')   // a list of units this tutor covers, e.g. "MD2; MD3"
-        return `<td class="cell-edit"><input class="cell" type="text" data-r="${i}" data-c="${c}" value="${escapeAttr(v)}" placeholder="MD2; MD3"></td>`;
+      // Units a tutor covers: multi-select checklist of the fixed MD1–MD7 list (one group per unit).
+      if (c === 'Units') return multiPickCell(i, c, v, UNITS, false, 'No units');
       const fk = (FIELD_KINDS[sheet] || {})[c];
       if (fk && fk.enum) return pickCell(i, c, enumOptions(fk.enum, v));
       if (fk && fk.ref)  return pickCell(i, c, refOptions(fk.ref, v));
