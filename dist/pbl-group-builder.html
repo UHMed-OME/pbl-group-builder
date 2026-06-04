@@ -712,7 +712,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // ---- Pick-lists: keep solver input sanitized + human-readable -----------
   // Static enums (canonical value stored; human label shown), scoped per sheet
   // so identifier columns like Tutors.TutorID stay free text.
-  const GENDER_OPTS   = [{ value:'F', label:'Female' }, { value:'M', label:'Male' }, { value:'X', label:'Other / Nonbinary' }];
+  // Emoji prefixes are display-only (the stored value stays 'F'/'M'/'X'); they don't reach the .xlsx
+  // round-trip or the printed roster (which use genderLabel/GENDER_LABELS).
+  const GENDER_OPTS   = [{ value:'F', label:'♀️ Female' }, { value:'M', label:'♂️ Male' }, { value:'X', label:'⚧️ Other / Nonbinary' }];
   const MAXSTU_OPTS   = [4,5,6,7,8].map(n => ({ value:String(n), label:`${n} students` }));
   const KIND_OPTS     = [{ value:'student-student', label:'Student ↔ Student' }, { value:'tutor-student', label:'Tutor ↔ Student' }];
   const UNIT_OPTS     = UNITS.map(u => ({ value:u, label:u }));
@@ -737,24 +739,28 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (v !== '' && !opts.some(o => o.value === v)) html += optionTag(v, `${v} (?)`, true); // keep unknown visible
     return html;
   }
+  // Emoji prefixes here are display-only — the option value stays the bare ID for the round-trip.
+  const REF_EMOJI = { tutor: '🧑‍🏫', student: '🎓' };
   function refOptions(kind, v) {
-    const peopleGroup = (label, rows, idK) => rows.length
+    const peopleGroup = (label, emoji, rows, idK) => rows.length
       ? `<optgroup label="${escapeHtml(label)}">` +
-        rows.map(r => optionTag(norm(r[idK]), idLabel(norm(r[idK]), norm(r.Name)), norm(r[idK]) === v)).join('') +
+        rows.map(r => optionTag(norm(r[idK]), `${emoji} ${idLabel(norm(r[idK]), norm(r.Name))}`, norm(r[idK]) === v)).join('') +
         `</optgroup>` : '';
     if (kind === 'people') {
       let html = optionTag('', '— none —', v === '');
-      html += peopleGroup('Students', workbook.Students || [], 'StudentID');
-      html += peopleGroup('Tutors',   workbook.Tutors   || [], 'TutorID');
+      html += peopleGroup('Students', REF_EMOJI.student, workbook.Students || [], 'StudentID');
+      html += peopleGroup('Tutors',   REF_EMOJI.tutor,   workbook.Tutors   || [], 'TutorID');
       const known = [...(workbook.Students || []).map(r => norm(r.StudentID)),
                      ...(workbook.Tutors   || []).map(r => norm(r.TutorID))];
       if (v !== '' && !known.includes(v)) html += optionTag(v, `${v} (unknown)`, true);
       return html;
     }
-    const rows = kind === 'tutors' ? (workbook.Tutors || []) : (workbook.Students || []);
-    const idK = kind === 'tutors' ? 'TutorID' : 'StudentID';
+    const isTut = kind === 'tutors';
+    const rows = isTut ? (workbook.Tutors || []) : (workbook.Students || []);
+    const idK = isTut ? 'TutorID' : 'StudentID';
+    const emoji = isTut ? REF_EMOJI.tutor : REF_EMOJI.student;
     let html = optionTag('', '— none —', v === '');
-    html += rows.map(r => optionTag(norm(r[idK]), idLabel(norm(r[idK]), norm(r.Name)), norm(r[idK]) === v)).join('');
+    html += rows.map(r => optionTag(norm(r[idK]), `${emoji} ${idLabel(norm(r[idK]), norm(r.Name))}`, norm(r[idK]) === v)).join('');
     if (v !== '' && !rows.some(r => norm(r[idK]) === v)) html += optionTag(v, `${v} (unknown)`, true);
     return html;
   }
