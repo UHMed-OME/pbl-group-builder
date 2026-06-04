@@ -653,6 +653,9 @@
   const groupLabel = (gid) => { const m = /^G\s*0*(\d+)$/i.exec(norm(gid)); return m ? `Group ${m[1]}` : norm(gid); };
   const genderLabel = (g) => GENDER_LABELS[up(g)] || norm(g);
   const tagLabel = (tag) => { const t = norm(tag); return (t in TAG_LABELS) ? TAG_LABELS[t] : t; };
+  // Display-only emoji for a role (used in the role checklist dropdown, not in print/board).
+  const ROLE_EMOJI = { ImiGA: '🌺', HOMEmgr: '🏠' };
+  const roleEmoji = (r) => ROLE_EMOJI[norm(r)] || '🏷️';
   // A student's ScheduleTag may hold MULTIPLE roles (delimited like Units). Helpers:
   let customRoles = new Set();   // roles the operator added in-session before assigning them
   const studentRoles = (tag) => splitIds(tag).map(norm).filter(Boolean);
@@ -690,7 +693,7 @@
   // round-trip or the printed roster (which use genderLabel/GENDER_LABELS).
   const GENDER_OPTS   = [{ value:'F', label:'♀️ Female' }, { value:'M', label:'♂️ Male' }, { value:'X', label:'⚧️ Other / Nonbinary' }];
   const MAXSTU_OPTS   = [4,5,6,7,8].map(n => ({ value:String(n), label:`${n} students` }));
-  const KIND_OPTS     = [{ value:'student-student', label:'Student ↔ Student' }, { value:'tutor-student', label:'Tutor ↔ Student' }];
+  const KIND_OPTS     = [{ value:'student-student', label:'🎓 Student ↔ 🎓 Student' }, { value:'tutor-student', label:'🧑‍🏫 Tutor ↔ 🎓 Student' }];
   const UNIT_OPTS     = UNITS.map(u => ({ value:u, label:u }));
   const DAY_OPTS      = DAYS.map(d => ({ value:d, label:d }));
   const HOUR_OPTS     = HOURS.map(h => ({ value:h, label:h }));
@@ -1200,9 +1203,9 @@
     // togglable values; `addable` shows an inline "new value" field (used by roles, not by units).
     const multiPickCell = (i, c, v, options, addable, emptyText) => {
       const chosen = studentRoles(v);
-      const summary = chosen.length ? escapeHtml(chosen.map(x => tagLabel(x)).join(', ')) : '<span class="muted">— none —</span>';
+      const summary = chosen.length ? escapeHtml(chosen.map(x => roleEmoji(x) + ' ' + tagLabel(x)).join(', ')) : '<span class="muted">— none —</span>';
       const items = options.map(o =>
-        `<label class="rolechk-item"><input type="checkbox" class="rolechk" data-r="${i}" data-c="${c}" data-role="${escapeAttr(o)}"${chosen.includes(o) ? ' checked' : ''}> ${escapeHtml(tagLabel(o))}</label>`).join('')
+        `<label class="rolechk-item"><input type="checkbox" class="rolechk" data-r="${i}" data-c="${c}" data-role="${escapeAttr(o)}"${chosen.includes(o) ? ' checked' : ''}> ${escapeHtml(roleEmoji(o) + ' ' + tagLabel(o))}</label>`).join('')
         || `<div class="muted" style="padding:0.2rem 0.3rem">${escapeHtml(emptyText || 'None')}</div>`;
       const add = addable
         ? `<div class="rolepick-add"><input type="text" class="roleadd" data-r="${i}" data-c="${c}" placeholder="New role…" aria-label="New role name">` +
@@ -1332,7 +1335,7 @@
         else roles = roles.filter(x => x !== role);
         workbook[sheet][r][c] = roles.join('; ');
         const det = t.closest('details'); const sum = det && det.querySelector('.rolesum');
-        if (sum) sum.innerHTML = roles.length ? escapeHtml(roleLabels(roles.join('; '))) : '<span class="muted">— none —</span>';
+        if (sum) sum.innerHTML = roles.length ? escapeHtml(roles.map(x => roleEmoji(x) + ' ' + tagLabel(x)).join(', ')) : '<span class="muted">— none —</span>';
         refreshValidation(); pushHistory();
       } else if (t.classList && t.classList.contains('unitchk')) {
         // Toggle a unit on the tutor; dropping a unit also clears its per-unit time override.
@@ -1396,8 +1399,8 @@
   // ---- Schedule calendar (edits the Blockouts sheet) ---------------------
   // Subjects to block out: special roles (presets + any in the data) and the units MD1–MD7.
   function scheduleSubjects() {
-    return [...knownRoles().map(r => ({ value: r, label: tagLabel(r) || r, group: 'Role' })),
-            ...UNITS.map(u => ({ value: u, label: u, group: 'Unit' }))];
+    return [...knownRoles().map(r => ({ value: r, label: roleEmoji(r) + ' ' + (tagLabel(r) || r), group: 'Role' })),
+            ...UNITS.map(u => ({ value: u, label: '📚 ' + u, group: 'Unit' }))];
   }
   // Hour cells (`day|HH:00`) blocked for a subject (covers multi-hour imported ranges too).
   function blockedCells(subject) {
