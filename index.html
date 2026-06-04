@@ -341,6 +341,10 @@
       color: var(--muted); padding: 0.15rem 0.25rem; max-width: 76px; cursor: pointer; }
     .chip .cname { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chip .ctags { color: var(--muted); font-size: 0.8rem; margin-top: 0.1rem; }
+    .chip .croles { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.2rem; }
+    .rolepill { display: inline-flex; align-items: center; font-size: 0.7rem; font-weight: 600;
+      padding: 0.04rem 0.42rem; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; line-height: 1.5; }
+    .rolesum .rolepill { margin: 0.1rem 0.15rem 0 0; }
     .lockbtn { border: none; background: transparent; cursor: pointer; padding: 0.1rem; line-height: 1;
       display: inline-flex; color: var(--muted); opacity: 0.7; }
     .lockbtn .icon { width: 16px; height: 16px; }
@@ -656,6 +660,17 @@
   // Display-only emoji for a role (used in the role checklist dropdown, not in print/board).
   const ROLE_EMOJI = { ImiGA: '🌺', HOMEmgr: '🏠' };
   const roleEmoji = (r) => ROLE_EMOJI[norm(r)] || '🏷️';
+  // Color-coded role pills (display only — print stays plain text). Color is deterministic per role
+  // so the same role is always the same color; the text label inside keeps it accessible/grayscale-safe.
+  const ROLE_PALETTE = [
+    { bg:'#e7f0ff', fg:'#1b4b8f', bd:'#bcd4f5' }, { bg:'#fdeaf1', fg:'#9c2a5c', bd:'#f4c4d7' },
+    { bg:'#e6f6ea', fg:'#1f6b3a', bd:'#bfe6c9' }, { bg:'#fff3df', fg:'#8a5a12', bd:'#f3dcae' },
+    { bg:'#efe9fb', fg:'#5a3a9c', bd:'#d6c8f0' }, { bg:'#e3f5f8', fg:'#196072', bd:'#bde6ee' },
+    { bg:'#fdece0', fg:'#9a4a1e', bd:'#f4cdb0' }, { bg:'#eceef1', fg:'#444444', bd:'#d4d9df' },
+  ];
+  function roleColor(r) { const s = norm(r); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return ROLE_PALETTE[h % ROLE_PALETTE.length]; }
+  const rolePill = (r) => { const c = roleColor(r);
+    return `<span class="rolepill" style="background:${c.bg};color:${c.fg};border-color:${c.bd}">${escapeHtml(roleEmoji(r) + ' ' + tagLabel(r))}</span>`; };
   // A student's ScheduleTag may hold MULTIPLE roles (delimited like Units). Helpers:
   let customRoles = new Set();   // roles the operator added in-session before assigning them
   const studentRoles = (tag) => splitIds(tag).map(norm).filter(Boolean);
@@ -1204,7 +1219,7 @@
     // togglable values; `addable` shows an inline "new value" field (used by roles, not by units).
     const multiPickCell = (i, c, v, options, addable, emptyText) => {
       const chosen = studentRoles(v);
-      const summary = chosen.length ? escapeHtml(chosen.map(x => roleEmoji(x) + ' ' + tagLabel(x)).join(', ')) : '<span class="muted">— none —</span>';
+      const summary = chosen.length ? chosen.map(rolePill).join('') : '<span class="muted">— none —</span>';
       const items = options.map(o =>
         `<label class="rolechk-item"><input type="checkbox" class="rolechk" data-r="${i}" data-c="${c}" data-role="${escapeAttr(o)}"${chosen.includes(o) ? ' checked' : ''}> ${escapeHtml(roleEmoji(o) + ' ' + tagLabel(o))}</label>`).join('')
         || `<div class="muted" style="padding:0.2rem 0.3rem">${escapeHtml(emptyText || 'None')}</div>`;
@@ -1336,7 +1351,7 @@
         else roles = roles.filter(x => x !== role);
         workbook[sheet][r][c] = roles.join('; ');
         const det = t.closest('details'); const sum = det && det.querySelector('.rolesum');
-        if (sum) sum.innerHTML = roles.length ? escapeHtml(roles.map(x => roleEmoji(x) + ' ' + tagLabel(x)).join(', ')) : '<span class="muted">— none —</span>';
+        if (sum) sum.innerHTML = roles.length ? roles.map(rolePill).join('') : '<span class="muted">— none —</span>';
         refreshValidation(); pushHistory();
       } else if (t.classList && t.classList.contains('unitchk')) {
         // Toggle a unit on the tutor; dropping a unit also clears its per-unit time override.
@@ -2061,8 +2076,9 @@
         `<option value="${j}">${escapeHtml(groupLabel(gg.GroupID))}</option>`).join('');
       const chips = g.students.map(sid => {
         const s = students.get(sid) || {};
-        const tags = [up(s.Imi) === 'Y' ? 'Imi Hoʻōla' : '', up(s.Resident) === 'N' ? 'Non-resident' : '',
-                      genderLabel(s.Gender), roleLabels(s.ScheduleTag)].filter(Boolean).join(' · ');
+        const attrs = [up(s.Imi) === 'Y' ? 'Imi Hoʻōla' : '', up(s.Resident) === 'N' ? 'Non-resident' : '',
+                      genderLabel(s.Gender)].filter(Boolean).join(' · ');
+        const pills = studentRoles(s.ScheduleTag).map(rolePill).join('');
         const f = flags.get(sid), wn = warns.get(sid), lk = locked.has(sid);
         const tip = f || wn, nm = norm(s.Name) || sid;
         return `<div class="chip${f ? ' flag' : wn ? ' warn' : ''}${lk ? ' locked' : ''}" draggable="true" data-sid="${escapeAttr(sid)}"` +
@@ -2070,7 +2086,8 @@
           `<div class="chip-row"><span class="cname">${escapeHtml(nm)}</span><span class="chip-actions">` +
           `<select class="movesel" data-sid="${escapeAttr(sid)}" aria-label="Move ${escapeAttr(nm)} to another group" title="Move to another group"><option value="">Move…</option>${moveOpts}</select>` +
           `<button class="lockbtn" data-sid="${escapeAttr(sid)}" aria-label="${lk ? 'Locked' : 'Lock in place'}" title="${lk ? 'Locked — kept in place on re-solve' : 'Lock in place'}">${lk ? ICONS.lock : ICONS.unlock}</button></span></div>` +
-          (tags ? `<div class="ctags">${escapeHtml(tags)}</div>` : '') + `</div>`;
+          (attrs ? `<div class="ctags">${escapeHtml(attrs)}</div>` : '') +
+          (pills ? `<div class="croles">${pills}</div>` : '') + `</div>`;
       }).join('') || `<div class="hint" style="margin:0">drop students here</div>`;
       // At-a-glance composition so the operator can eyeball balance without reading chips.
       let gf = 0, gm = 0, gImi = 0, gNon = 0;
