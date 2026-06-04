@@ -742,17 +742,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (v !== '' && !opts.some(o => o.value === v)) html += optionTag(v, `${v} (?)`, true); // keep unknown visible
     return html;
   }
-  // Emoji prefixes here are display-only — the option value stays the bare ID for the round-trip.
+  // Emoji here are display-only and used ONLY in the mixed "people" picker, where they tell a
+  // student apart from a tutor at a glance. Single-kind pickers (LC Mentor = all tutors, history
+  // refs) get no emoji — a uniform icon on every row is noise, not signal.
   const REF_EMOJI = { tutor: '🧑‍🏫', student: '🎓' };
   function refOptions(kind, v) {
-    const peopleGroup = (label, emoji, rows, idK) => rows.length
+    const plainGroup = (label, emoji, rows, idK) => rows.length
       ? `<optgroup label="${escapeHtml(label)}">` +
-        rows.map(r => optionTag(norm(r[idK]), `${emoji} ${idLabel(norm(r[idK]), norm(r.Name))}`, norm(r[idK]) === v)).join('') +
+        rows.map(r => optionTag(norm(r[idK]), `${emoji ? emoji + ' ' : ''}${idLabel(norm(r[idK]), norm(r.Name))}`, norm(r[idK]) === v)).join('') +
         `</optgroup>` : '';
     if (kind === 'people') {
       let html = optionTag('', '— none —', v === '');
-      html += peopleGroup('Students', REF_EMOJI.student, workbook.Students || [], 'StudentID');
-      html += peopleGroup('Tutors',   REF_EMOJI.tutor,   workbook.Tutors   || [], 'TutorID');
+      html += plainGroup('Students', REF_EMOJI.student, workbook.Students || [], 'StudentID');
+      html += plainGroup('Tutors',   REF_EMOJI.tutor,   workbook.Tutors   || [], 'TutorID');
       const known = [...(workbook.Students || []).map(r => norm(r.StudentID)),
                      ...(workbook.Tutors   || []).map(r => norm(r.TutorID))];
       if (v !== '' && !known.includes(v)) html += optionTag(v, `${v} (unknown)`, true);
@@ -761,9 +763,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const isTut = kind === 'tutors';
     const rows = isTut ? (workbook.Tutors || []) : (workbook.Students || []);
     const idK = isTut ? 'TutorID' : 'StudentID';
-    const emoji = isTut ? REF_EMOJI.tutor : REF_EMOJI.student;
     let html = optionTag('', '— none —', v === '');
-    html += rows.map(r => optionTag(norm(r[idK]), `${emoji} ${idLabel(norm(r[idK]), norm(r.Name))}`, norm(r[idK]) === v)).join('');
+    html += rows.map(r => optionTag(norm(r[idK]), idLabel(norm(r[idK]), norm(r.Name)), norm(r[idK]) === v)).join('');
     if (v !== '' && !rows.some(r => norm(r[idK]) === v)) html += optionTag(v, `${v} (unknown)`, true);
     return html;
   }
@@ -1426,7 +1427,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // Subjects to block out: special roles (presets + any in the data) and the units MD1–MD7.
   function scheduleSubjects() {
     return [...knownRoles().map(r => ({ value: r, label: roleEmoji(r) + ' ' + (tagLabel(r) || r), group: 'Role' })),
-            ...UNITS.map(u => ({ value: u, label: '📚 ' + u, group: 'Unit' }))];
+            ...UNITS.map(u => ({ value: u, label: u, group: 'Unit' }))];
   }
   // Hour cells (`day|HH:00`) blocked for a subject (covers multi-hour imported ranges too).
   function blockedCells(subject) {
