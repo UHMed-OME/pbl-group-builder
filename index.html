@@ -179,12 +179,13 @@
     .sheet-wrap tbody tr:hover td:first-child { background: var(--surface); }
     .sheet-wrap tr.badrow td:first-child { background: var(--err-bg); }
     /* Auto width so columns hug their content instead of stretching across the page. */
-    table { border-collapse: collapse; width: auto; font-size: 0.92rem; }
-    th, td { text-align: left; padding: 0.4rem 0.85rem; border-bottom: 1px solid var(--line);
-      border-right: 1px solid var(--line); white-space: nowrap; }
+    table { border-collapse: collapse; width: auto; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.3rem 0.55rem; border-bottom: 1px solid var(--line);
+      border-right: 1px solid rgba(127,127,127,0.10); white-space: nowrap; }
     th:last-child, td:last-child { border-right: none; }
-    th { background: var(--surface); position: sticky; top: 0; z-index: 3; font-weight: 700;
-      color: var(--brand-dark); border-bottom: 2px solid var(--line); }
+    th { background: var(--surface); position: sticky; top: 0; z-index: 3; font-weight: 600;
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em;
+      color: var(--muted); border-bottom: 1.5px solid var(--line); }
     tbody tr:hover td { background: var(--surface); }
     tr.badrow td { background: var(--err-bg); }
     .empty { color: var(--muted); padding: 1.5rem; text-align: center; font-size: 0.95rem; }
@@ -225,15 +226,15 @@
     .bulk-bar .bulk-clear, .bulk-bar #bulkClear { margin-left: auto; }
     th.sel-col, td.sel-cell { width: 1%; text-align: center; padding: 0 0.3rem; }
     tr.selrow > td { background: var(--accent-bg); }
-    td.cell-edit { padding: 0 0.4rem; }   /* horizontal gap so controls don't touch the next column */
+    td.cell-edit { padding: 0 0.25rem; }   /* small gap so controls don't touch the next column */
     input.cell {
-      width: 100%; min-width: 5rem; font: inherit; font-size: 0.92rem; border: 0;
-      background: transparent; color: var(--fg); padding: 0.5rem 0.35rem;
+      width: 100%; min-width: 3.5rem; font: inherit; font-size: 0.9rem; border: 0;
+      background: transparent; color: var(--fg); padding: 0.35rem 0.3rem; border-radius: 5px;
     }
     input.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     select.cell {
-      width: 100%; min-width: 6rem; font: inherit; font-size: 0.92rem; border: 0;
-      background: transparent; color: var(--fg); padding: 0.45rem 0.3rem; cursor: pointer;
+      width: 100%; min-width: 0; font: inherit; font-size: 0.9rem; border: 0;
+      background: transparent; color: var(--fg); padding: 0.35rem 0.2rem; cursor: pointer; border-radius: 5px;
     }
     select.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     /* Multi-role checklist dropdown (ScheduleTag) */
