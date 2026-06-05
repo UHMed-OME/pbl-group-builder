@@ -371,7 +371,23 @@
     .help-steps { margin: 0 0 1rem; padding-left: 1.3rem; line-height: 1.5; }
     .help-steps li { margin-bottom: 0.5rem; }
     .help-steps code { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 0.25rem; font-size: 0.88em; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
+    /* Add-record ingest form */
+    .form-card { width: 540px; max-width: 100%; max-height: 86vh; overflow: auto; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 0.9rem; margin: 0.4rem 0 0; }
+    .form-field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+    .form-field.wide { grid-column: 1 / -1; }
+    .form-field > label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+    .form-field .ff-req { color: var(--err); }
+    .form-field > select, .form-field > input[type=text] { width: 100%; font: inherit; font-size: 0.92rem;
+      padding: 0.45rem 0.55rem; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--fg); }
+    .form-field > select:focus, .form-field > input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    .ff-multi { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem; padding: 0.4rem 0.55rem;
+      border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
+    .ff-chk { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; white-space: nowrap; cursor: pointer; }
+    .ff-new { flex: 1 1 8rem; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.25rem 0.4rem;
+      border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--fg); }
+    @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; }
     button.danger { background: var(--err); border-color: var(--err); color: #fff; }
     button.danger:hover { filter: brightness(1.08); background: var(--err); }
 
@@ -554,6 +570,19 @@
       </ol>
       <p class="modal-msg" style="font-size:0.86rem">Groups are built automatically from the tutors you assign to a unit. The Schedule tab is optional.</p>
       <div class="modal-actions"><button id="helpClose" class="primary">Got it</button></div>
+    </div>
+  </div>
+
+  <div id="formModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+    <div class="modal-card form-card">
+      <h2 id="formTitle" class="modal-title">Add</h2>
+      <div id="formBody" class="form-grid"></div>
+      <div id="formErr" class="issue err hidden" style="margin:0.6rem 0 0"></div>
+      <div class="modal-actions">
+        <button id="formCancel">Cancel</button>
+        <button id="formAddAnother">Add &amp; new</button>
+        <button id="formAdd" class="primary">Add</button>
+      </div>
     </div>
   </div>
 
@@ -1349,17 +1378,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
     // The row count + primary Add row live up on the tab bar (right side); the table area keeps
     // the bulk bar and a full-width Add row at the bottom (where you naturally add to the list).
+    const addLabel = 'Add ' + (SHEET_SINGULAR[sheet] || 'row');
     const acts = $('sheetActions'); acts.classList.remove('hidden');
     acts.innerHTML = `<span class="hint" style="margin:0">${shown}</span>` +
-      `<button class="btn-addrow js-addrow" id="btnAddRow">${ICONS.plus} Add row</button>`;
-    acts.onclick = (e) => { if (e.target.closest && e.target.closest('.js-addrow')) addRow(); };
+      `<button class="btn-addrow js-addrow" id="btnAddRow">${ICONS.plus} ${escapeHtml(addLabel)}</button>`;
+    acts.onclick = (e) => { if (e.target.closest && e.target.closest('.js-addrow')) openAddForm(sheet); };
 
     view.innerHTML =
       bulkBar +
       (cols.length
         ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
-          `<button class="addrow-foot js-addrow" id="btnAddRow2">${ICONS.plus} Add row</button>`
-        : `<div class="empty">${sheet} is empty.</div>`);
+          `<button class="addrow-foot js-addrow" id="btnAddRow2">${ICONS.plus} ${escapeHtml(addLabel)}</button>`
+        : `<div class="empty">${sheet} is empty. <button class="btn-addrow js-addrow">${ICONS.plus} ${escapeHtml(addLabel)}</button></div>`);
 
     view.oninput = (e) => {
       const t = e.target;
@@ -1408,7 +1438,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }
     };
     view.onclick = (e) => {
-      if (e.target.closest && e.target.closest('.js-addrow')) { addRow(); return; }
+      if (e.target.closest && e.target.closest('.js-addrow')) { openAddForm(sheet); return; }
       const addBtn = e.target.closest && e.target.closest('.roleaddbtn');
       if (addBtn) { addRoleFromInput(sheet, +addBtn.dataset.r, addBtn.dataset.c, addBtn.closest('.rolepick-panel')); return; }
       if (e.target.id === 'bulkClear') { selectedRows = new Set(); renderSheet(); return; }
@@ -1606,6 +1636,72 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (rosterFilter && cols.includes('Cohort')) blank.Cohort = rosterFilter;
     (workbook[activeTab] = workbook[activeTab] || []).push(blank);
     renderSheet(); refreshValidation(); pushHistory();
+  }
+
+  // ---- Add via a guided ingest form (friendlier than a blank grid row) ----
+  let _formSheet = null;
+  const SHEET_SINGULAR = { Students: 'student', Tutors: 'tutor', Conflicts: 'conflict', PBLHistory: 'history row' };
+  const WIDE_FIELDS = new Set(['ScheduleTag', 'Units', 'Reason']);
+  // One labelled control for a column, matching the grid's editors (toggles → Yes/No, pick-lists,
+  // role/unit checklists). Values are read back on submit (not written live).
+  function formControl(sheet, col) {
+    const id = 'ff_' + col;
+    if (BOOL_COLS.has(col)) return `<select id="${id}"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option></select>`;
+    if (col === 'Cohort') { const ys = []; for (let y = COHORT_MIN_YEAR; y <= COHORT_MAX_YEAR; y++) ys.push(String(y));
+      return `<select id="${id}"><option value="">— choose —</option>${ys.map(x => `<option value="${x}">${x}</option>`).join('')}</select>`; }
+    if (col === 'ScheduleTag') {
+      const boxes = knownRoles().map(r => `<label class="ff-chk"><input type="checkbox" class="ffrole" data-val="${escapeAttr(r)}"> ${escapeHtml(roleEmoji(r) + ' ' + tagLabel(r))}</label>`).join('');
+      return `<div class="ff-multi">${boxes || '<span class="muted">No roles yet</span>'}<input type="text" id="ffNewRole" class="ff-new" placeholder="+ add a new role…"></div>`;
+    }
+    if (col === 'Units') {
+      return `<div class="ff-multi">${UNITS.map(u => `<label class="ff-chk"><input type="checkbox" class="ffunit" data-val="${u}"> ${u}</label>`).join('')}</div>`;
+    }
+    const fk = (FIELD_KINDS[sheet] || {})[col];
+    if (fk && fk.enum) return `<select id="${id}">${enumOptions(fk.enum, '')}</select>`;
+    if (fk && fk.ref)  return `<select id="${id}">${refOptions(fk.ref, '')}</select>`;
+    return `<input type="text" id="${id}" autocomplete="off">`;
+  }
+  function openAddForm(sheet) {
+    const cols = (SCHEMA[sheet] && SCHEMA[sheet].required) || [];
+    const ess = new Set((SCHEMA[sheet] && SCHEMA[sheet].essential) || []);
+    _formSheet = sheet;
+    $('formTitle').textContent = 'Add ' + (SHEET_SINGULAR[sheet] || 'row');
+    $('formBody').innerHTML = cols.map(col =>
+      `<div class="form-field${WIDE_FIELDS.has(col) ? ' wide' : ''}"><label for="ff_${col}">${escapeHtml(colLabel(col))}${ess.has(col) ? ' <span class="ff-req">*</span>' : ''}</label>${formControl(sheet, col)}</div>`).join('');
+    $('formErr').classList.add('hidden');
+    $('formModal').classList.remove('hidden');
+    const first = $('formBody').querySelector('input, select'); if (first) first.focus();
+  }
+  function readFormRow(sheet) {
+    const row = {};
+    ((SCHEMA[sheet] && SCHEMA[sheet].required) || []).forEach(col => {
+      if (col === 'ScheduleTag') {
+        const chk = [...document.querySelectorAll('#formBody .ffrole:checked')].map(c => c.dataset.val);
+        const extra = splitIds(($('ffNewRole') || {}).value || '');
+        extra.forEach(r => { if (r) customRoles.add(r); });
+        row[col] = [...new Set([...chk, ...extra])].join('; ');
+      } else if (col === 'Units') {
+        row[col] = [...document.querySelectorAll('#formBody .ffunit:checked')].map(c => c.dataset.val).join('; ');
+      } else {
+        const el = document.getElementById('ff_' + col);
+        row[col] = el ? norm(el.value) : '';
+      }
+    });
+    return row;
+  }
+  function submitForm(keepOpen) {
+    const sheet = _formSheet; if (!sheet) return;
+    const row = readFormRow(sheet);
+    const idCol = SCHEMA[sheet] && SCHEMA[sheet].key;
+    const missing = ((SCHEMA[sheet] && SCHEMA[sheet].essential) || []).filter(c => !norm(row[c]));
+    const showErr = (m) => { const e = $('formErr'); e.textContent = m; e.classList.remove('hidden'); };
+    if (missing.length) return showErr(`Please fill: ${missing.map(colLabel).join(', ')}.`);
+    if (idCol && (workbook[sheet] || []).some(r => norm(r[idCol]) === norm(row[idCol]))) return showErr(`${colLabel(idCol)} "${norm(row[idCol])}" already exists.`);
+    if (rosterFilter && ((SCHEMA[sheet].required || []).includes('Cohort')) && !row.Cohort) row.Cohort = rosterFilter;
+    (workbook[sheet] = workbook[sheet] || []).push(row);
+    activeTab = sheet; renderTabs(); renderSheet(); refreshValidation(); pushHistory();
+    if (keepOpen) { openAddForm(sheet); toast('Added — add another'); }
+    else { $('formModal').classList.add('hidden'); toast('Added'); }
   }
 
   // Add a brand-new role from the inline "New role…" box, assign it to this student, re-render.
@@ -2318,6 +2414,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   $('helpClose').onclick = closeHelp;
   $('helpModal').addEventListener('click', (e) => { if (e.target.id === 'helpModal') closeHelp(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('helpModal').classList.contains('hidden')) closeHelp(); });
+
+  // Add-record ingest form: Cancel / Add & new / Add; scrim + Escape close; Enter (in a text field) adds.
+  const closeForm = () => $('formModal').classList.add('hidden');
+  $('formCancel').onclick = closeForm;
+  $('formAdd').onclick = () => submitForm(false);
+  $('formAddAnother').onclick = () => submitForm(true);
+  $('formModal').addEventListener('click', (e) => { if (e.target.id === 'formModal') closeForm(); });
+  document.addEventListener('keydown', (e) => {
+    if ($('formModal').classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeForm();
+    else if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type === 'text') { e.preventDefault(); submitForm(false); }
+  });
 
   // Confirmation modal: buttons, scrim click, Escape.
   $('modalOk').onclick = () => closeModal(true);

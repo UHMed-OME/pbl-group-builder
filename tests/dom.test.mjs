@@ -51,7 +51,7 @@ const sandbox = {
 };
 sandbox.globalThis = sandbox;
 const src = m[1] + '\n;globalThis.__app = { solve, renderResult, exportWorkbook, makeExample, defaultWeights,' +
-  ' showSchedule: () => { activeTab = "Blockouts"; renderSheet(); } };';
+  ' showSchedule: () => { activeTab = "Blockouts"; renderSheet(); }, openAddForm };';
 vm.createContext(sandbox);
 
 // --- 3. Loading the app (auto-load → full render) must not throw -----------
@@ -70,5 +70,9 @@ console.log('✓ exportWorkbook builds a workbook');
 // --- 5. The Schedule calendar tab renders without throwing -----------------
 app.showSchedule();
 console.log('✓ Schedule calendar tab renders without throwing');
+
+// --- 6. The add-record ingest form builds for each sheet without throwing ---
+for (const s of ['Students', 'Tutors', 'Conflicts']) app.openAddForm(s);
+console.log('✓ ingest form builds for Students/Tutors/Conflicts without throwing');
 
 console.log('\nALL DOM TESTS PASSED');
