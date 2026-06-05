@@ -662,11 +662,17 @@
   const roleEmoji = (r) => ROLE_EMOJI[norm(r)] || '🏷️';
   // Color-coded role pills (display only — print stays plain text). Color is deterministic per role
   // so the same role is always the same color; the text label inside keeps it accessible/grayscale-safe.
+  // Standard tag palette (GitHub/Notion/Linear-style soft hues), no gray.
   const ROLE_PALETTE = [
-    { bg:'#e7f0ff', fg:'#1b4b8f', bd:'#bcd4f5' }, { bg:'#fdeaf1', fg:'#9c2a5c', bd:'#f4c4d7' },
-    { bg:'#e6f6ea', fg:'#1f6b3a', bd:'#bfe6c9' }, { bg:'#fff3df', fg:'#8a5a12', bd:'#f3dcae' },
-    { bg:'#efe9fb', fg:'#5a3a9c', bd:'#d6c8f0' }, { bg:'#e3f5f8', fg:'#196072', bd:'#bde6ee' },
-    { bg:'#fdece0', fg:'#9a4a1e', bd:'#f4cdb0' }, { bg:'#eceef1', fg:'#444444', bd:'#d4d9df' },
+    { bg:'#e8f0fe', fg:'#1a56b0', bd:'#c6dbfb' },  // blue
+    { bg:'#e6f4ea', fg:'#1e6b34', bd:'#c2e6cd' },  // green
+    { bg:'#f1e9fd', fg:'#6b3fa0', bd:'#ddc9f5' },  // purple
+    { bg:'#fef3d8', fg:'#92610a', bd:'#f6dfa6' },  // amber
+    { bg:'#fde7f0', fg:'#a52a68', bd:'#f6c2d8' },  // pink
+    { bg:'#e0f5f4', fg:'#11696b', bd:'#bce6e4' },  // teal
+    { bg:'#feeada', fg:'#a8541b', bd:'#f8d2b0' },  // orange
+    { bg:'#fdeaea', fg:'#b02a2a', bd:'#f6c6c6' },  // red
+    { bg:'#ebebfb', fg:'#43429c', bd:'#cfcef3' },  // indigo
   ];
   function roleColor(r) { const s = norm(r); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return ROLE_PALETTE[h % ROLE_PALETTE.length]; }
   const rolePill = (r) => { const c = roleColor(r);
