@@ -172,7 +172,7 @@
     .cal-legend .lg-coll { background: repeating-linear-gradient(45deg, var(--err), var(--err) 3px, var(--warn) 3px, var(--warn) 6px); }
     /* Shrink the bordered box to the table so it's left-aligned and compact, not full-width. */
     .sheet-wrap { overflow: auto; border: 1px solid var(--line); border-top: none; border-radius: 0 0 8px 8px;
-      width: fit-content; max-width: 100%; }
+      display: inline-block; max-width: 100%; vertical-align: top; }
     /* Sticky first column keeps the key in view while scrolling wide sheets. */
     .sheet-wrap th:first-child, .sheet-wrap td:first-child { position: sticky; left: 0; background: var(--bg); z-index: 1; }
     .sheet-wrap thead th:first-child { background: var(--surface); z-index: 4; }
@@ -226,22 +226,23 @@
     .bulk-bar .bulk-clear, .bulk-bar #bulkClear { margin-left: auto; }
     th.sel-col, td.sel-cell { width: 1%; text-align: center; padding: 0 0.3rem; }
     tr.selrow > td { background: var(--accent-bg); }
-    td.cell-edit { padding: 0 0.25rem; max-width: 13rem; }   /* small gap + cap so no column blows out */
+    td.cell-edit { padding: 0 0.25rem; max-width: 11rem; }   /* small gap + cap so no column blows out */
     input.cell {
       width: 100%; min-width: 0; font: inherit; font-size: 0.9rem; border: 0;
       background: transparent; color: var(--fg); padding: 0.35rem 0.3rem; border-radius: 5px;
     }
     input.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     select.cell {
-      width: 100%; min-width: 0; max-width: 12rem; font: inherit; font-size: 0.9rem; border: 0;
+      width: 100%; min-width: 0; max-width: 8.5rem; font: inherit; font-size: 0.9rem; border: 0;
       background: transparent; color: var(--fg); padding: 0.35rem 0.2rem; cursor: pointer; border-radius: 5px;
       overflow: hidden; text-overflow: ellipsis;
     }
     select.cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-bg); }
     /* Multi-role checklist dropdown (ScheduleTag) */
-    .rolepick { min-width: 7rem; }
-    .rolepick > summary { list-style: none; cursor: pointer; padding: 0.45rem 0.4rem; font-size: 0.92rem;
-      border-radius: 6px; display: flex; align-items: center; gap: 0.3rem; }
+    .rolepick { min-width: 5rem; max-width: 11rem; }
+    .rolepick > summary { list-style: none; cursor: pointer; padding: 0.45rem 0.4rem; font-size: 0.9rem;
+      border-radius: 6px; display: flex; align-items: center; gap: 0.3rem; overflow: hidden; }
+    .rolepick > summary .rolesum { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
     .rolepick > summary::-webkit-details-marker { display: none; }
     .rolepick > summary::after { content: "▾"; color: var(--muted); margin-left: auto; font-size: 0.8em; }
     .rolepick[open] > summary { background: var(--accent-bg); outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -387,6 +388,15 @@
     .ff-chk { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; white-space: nowrap; cursor: pointer; }
     .ff-new { flex: 1 1 8rem; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.25rem 0.4rem;
       border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--fg); }
+    .ff-newrow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; width: 100%; margin-top: 0.2rem; }
+    /* Emoji chooser for a new role (radios shown as clickable chips) */
+    .emoji-pick { display: inline-flex; flex-wrap: wrap; gap: 0.1rem; vertical-align: middle; }
+    .emoji-pick label { cursor: pointer; line-height: 1; border-radius: 6px; padding: 0.12rem 0.22rem;
+      border: 1px solid transparent; font-size: 1.02rem; }
+    .emoji-pick input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .emoji-pick label:hover { background: var(--surface); }
+    .emoji-pick label:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); }
+    .cal-addrole .emoji-pick { max-width: 14rem; }
     @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; }
     button.danger { background: var(--err); border-color: var(--err); color: #fff; }
@@ -690,7 +700,22 @@
   const tagLabel = (tag) => { const t = norm(tag); return (t in TAG_LABELS) ? TAG_LABELS[t] : t; };
   // Display-only emoji for a role (used in the role checklist dropdown, not in print/board).
   const ROLE_EMOJI = { ImiGA: '🌺', HOMEmgr: '🏠' };
-  const roleEmoji = (r) => ROLE_EMOJI[norm(r)] || '🏷️';
+  // Emojis the operator can pick when creating a role; chosen ones live in roleEmojiMap (session).
+  const ROLE_EMOJI_CHOICES = ['🏷️','🔬','📚','🩺','🧪','🩻','💊','🧠','❤️','⭐','🎯','🧬','👥','🌺','🏠','🗂️'];
+  let roleEmojiMap = {};
+  const roleEmoji = (r) => {
+    r = norm(r);
+    if (ROLE_EMOJI[r]) return ROLE_EMOJI[r];
+    if (roleEmojiMap[r]) return roleEmojiMap[r];
+    // No choice made → a distinct, stable emoji per role name (so they're not all identical).
+    let h = 0; for (let i = 0; i < r.length; i++) h = (h * 31 + r.charCodeAt(i)) >>> 0;
+    return ROLE_EMOJI_CHOICES[h % ROLE_EMOJI_CHOICES.length];
+  };
+  // A row of clickable emoji radios for choosing a new role's icon. `name` scopes the radio group.
+  const emojiPicker = (name) => `<span class="emoji-pick">` +
+    ROLE_EMOJI_CHOICES.map((e, i) => `<label><input type="radio" name="${name}" value="${e}"${i === 0 ? ' checked' : ''}>${e}</label>`).join('') +
+    `</span>`;
+  const pickedEmoji = (name) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
   // Color-coded role pills (display only — print stays plain text). Color is deterministic per role
   // so the same role is always the same color; the text label inside keeps it accessible/grayscale-safe.
   // Standard tag palette (GitHub/Notion/Linear-style soft hues), no gray.
@@ -743,7 +768,7 @@
   // so identifier columns like Tutors.TutorID stay free text.
   // Emoji prefixes are display-only (the stored value stays 'F'/'M'/'X'); they don't reach the .xlsx
   // round-trip or the printed roster (which use genderLabel/GENDER_LABELS).
-  const GENDER_OPTS   = [{ value:'F', label:'♀️ Female' }, { value:'M', label:'♂️ Male' }, { value:'X', label:'⚧️ Other / Nonbinary' }];
+  const GENDER_OPTS   = [{ value:'F', label:'♀️ Female' }, { value:'M', label:'♂️ Male' }, { value:'X', label:'⚧️ Other' }];
   const MAXSTU_OPTS   = [4,5,6,7,8].map(n => ({ value:String(n), label:`${n} students` }));
   const KIND_OPTS     = [{ value:'student-student', label:'🎓 Student ↔ 🎓 Student' }, { value:'tutor-student', label:'🧑‍🏫 Tutor ↔ 🎓 Student' }];
   const UNIT_OPTS     = UNITS.map(u => ({ value:u, label:u }));
@@ -1265,7 +1290,7 @@
         || `<div class="muted" style="padding:0.2rem 0.3rem">${escapeHtml(emptyText || 'None')}</div>`;
       const add = addable
         ? `<div class="rolepick-add"><input type="text" class="roleadd" data-r="${i}" data-c="${c}" placeholder="New role…" aria-label="New role name">` +
-          `<button type="button" class="roleaddbtn" data-r="${i}" data-c="${c}">Add</button></div>`
+          `<button type="button" class="roleaddbtn" data-r="${i}" data-c="${c}">Add</button></div>${emojiPicker('roleAddEmoji_' + i)}`
         : '';
       return `<td class="cell-edit"><details class="rolepick"><summary><span class="rolesum">${summary}</span></summary>` +
         `<div class="rolepick-panel">${items}${add}</div></details></td>`;
@@ -1552,7 +1577,7 @@
       `<div class="cal-bar"><label>Block out times for&nbsp;<select id="schedSubject">` +
         `<optgroup label="Roles">${optsOf('Role')}</optgroup><optgroup label="Units">${optsOf('Unit')}</optgroup></select></label>` +
         (schedAddingRole
-          ? `<span class="cal-addrole"><input type="text" id="schedRoleName" placeholder="New role name…" aria-label="New role name"><button id="schedRoleSave" class="ghost">Add</button><button id="schedRoleCancel" class="ghost">Cancel</button></span>`
+          ? `<span class="cal-addrole"><input type="text" id="schedRoleName" placeholder="New role name…" aria-label="New role name">${emojiPicker('schedEmoji')}<button id="schedRoleSave" class="ghost">Add</button><button id="schedRoleCancel" class="ghost">Cancel</button></span>`
           : `<button id="schedAddRole" class="ghost" title="Add a new role">+ Add role</button>`) +
         unitPick +
         `<button id="schedClear" class="ghost"${ranges.length ? '' : ' disabled'}>Clear blocks</button></div>` +
@@ -1571,8 +1596,9 @@
     view.onmouseover = (e) => { if (!_calDrag) return; const c = e.target.closest && e.target.closest('.cal-cell'); if (c) paint(c, _calDrag.on); };
     const saveNewRole = () => {
       const r = norm((view.querySelector('#schedRoleName') || {}).value);
+      const em = pickedEmoji('schedEmoji');
       schedAddingRole = false;
-      if (r) { customRoles.add(r); scheduleSubject = r; }
+      if (r) { customRoles.add(r); if (em) roleEmojiMap[r] = em; scheduleSubject = r; }
       renderSchedule(view);
     };
     view.onclick = (e) => {
@@ -1629,7 +1655,8 @@
       return `<select id="${id}"><option value="">— choose —</option>${ys.map(x => `<option value="${x}">${x}</option>`).join('')}</select>`; }
     if (col === 'ScheduleTag') {
       const boxes = knownRoles().map(r => `<label class="ff-chk"><input type="checkbox" class="ffrole" data-val="${escapeAttr(r)}"> ${escapeHtml(roleEmoji(r) + ' ' + tagLabel(r))}</label>`).join('');
-      return `<div class="ff-multi">${boxes || '<span class="muted">No roles yet</span>'}<input type="text" id="ffNewRole" class="ff-new" placeholder="+ add a new role…"></div>`;
+      return `<div class="ff-multi">${boxes || '<span class="muted">No roles yet</span>'}` +
+        `<div class="ff-newrow"><input type="text" id="ffNewRole" class="ff-new" placeholder="+ add a new role…">${emojiPicker('ffEmoji')}</div></div>`;
     }
     if (col === 'Units') {
       return `<div class="ff-multi">${UNITS.map(u => `<label class="ff-chk"><input type="checkbox" class="ffunit" data-val="${u}"> ${u}</label>`).join('')}</div>`;
@@ -1656,7 +1683,8 @@
       if (col === 'ScheduleTag') {
         const chk = [...document.querySelectorAll('#formBody .ffrole:checked')].map(c => c.dataset.val);
         const extra = splitIds(($('ffNewRole') || {}).value || '');
-        extra.forEach(r => { if (r) customRoles.add(r); });
+        const em = pickedEmoji('ffEmoji');
+        extra.forEach(r => { if (r) { customRoles.add(r); if (em) roleEmojiMap[r] = em; } });
         row[col] = [...new Set([...chk, ...extra])].join('; ');
       } else if (col === 'Units') {
         row[col] = [...document.querySelectorAll('#formBody .ffunit:checked')].map(c => c.dataset.val).join('; ');
@@ -1688,6 +1716,7 @@
     const name = norm(inp && inp.value);
     if (!name) { inp && inp.focus(); return; }
     customRoles.add(name);
+    const em = pickedEmoji('roleAddEmoji_' + r); if (em) roleEmojiMap[name] = em;
     const roles = studentRoles(workbook[sheet][r][c]);
     if (!roles.includes(name)) roles.push(name);
     workbook[sheet][r][c] = roles.join('; ');
@@ -2315,6 +2344,7 @@
     workbook = wb;
     usingExample = !!isExample;        // drives the "EXAMPLE data" badge
     customRoles = new Set();           // in-session role additions reset with a fresh workbook
+    roleEmojiMap = {};                 // and any chosen role emojis
     const res = validate(workbook);
     badRows = res.badRows;
     activeTab = focusSheet || SHEET_ORDER.find(s => (workbook[s] || []).length) || 'Students';
