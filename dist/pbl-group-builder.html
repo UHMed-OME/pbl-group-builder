@@ -369,6 +369,19 @@
     .modal-overlay { position: fixed; inset: 0; background: rgba(10, 20, 16, 0.5);
       display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 1000; }
     .modal-overlay.hidden { display: none; }   /* must beat .modal-overlay (later source order) */
+    /* Spotlight tour: the cut-out is a transparent box with a huge shadow that dims everything else. */
+    #tour { position: fixed; inset: 0; z-index: 1100; }
+    #tour.hidden { display: none; }
+    #tourSpot { position: fixed; border-radius: 9px; pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(12, 22, 18, 0.62); transition: left .25s, top .25s, width .25s, height .25s; }
+    #tourTip { position: fixed; z-index: 1101; width: 320px; max-width: calc(100vw - 24px);
+      background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.32);
+      padding: 1rem 1.15rem; }
+    .tour-title { font-weight: 700; color: var(--brand-dark); font-size: 1.05rem; margin-bottom: 0.35rem; }
+    .tour-body { font-size: 0.92rem; line-height: 1.5; margin-bottom: 0.85rem; }
+    .tour-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+    .tour-step { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+    .tour-btns { display: flex; gap: 0.4rem; }
     .modal-card { background: var(--bg); border-radius: 12px; padding: 1.4rem 1.5rem 1.2rem;
       max-width: 420px; width: 100%; box-shadow: 0 16px 48px rgba(0,0,0,0.28); }
     .modal-title { margin: 0 0 0.5rem; font-size: 1.1rem; color: var(--brand-dark); }
@@ -583,7 +596,24 @@
         <li><b>Export</b> — download the workbook. <b>That file becomes your master</b> — open it next unit so history carries forward.</li>
       </ol>
       <p class="modal-msg" style="font-size:0.86rem">Groups are built automatically from the tutors you assign to a unit. The Schedule tab is optional.</p>
-      <div class="modal-actions"><button id="helpClose" class="primary">Got it</button></div>
+      <div class="modal-actions"><button id="helpTour">▶ Take the tour</button><button id="helpClose" class="primary">Got it</button></div>
+    </div>
+  </div>
+
+  <!-- First-run spotlight tour: a dimmed overlay with a highlighted cut-out + step popover. -->
+  <div id="tour" class="hidden" role="dialog" aria-modal="true" aria-label="Guided tour">
+    <div id="tourSpot"></div>
+    <div id="tourTip">
+      <div id="tourTipTitle" class="tour-title"></div>
+      <div id="tourTipBody" class="tour-body"></div>
+      <div class="tour-foot">
+        <span id="tourStep" class="tour-step"></span>
+        <span class="tour-btns">
+          <button id="tourSkip" class="ghost">Skip</button>
+          <button id="tourBack">Back</button>
+          <button id="tourNext" class="primary">Next</button>
+        </span>
+      </div>
     </div>
   </div>
 
@@ -2452,6 +2482,54 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   $('helpModal').addEventListener('click', (e) => { if (e.target.id === 'helpModal') closeHelp(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('helpModal').classList.contains('hidden')) closeHelp(); });
 
+  // ---- First-run spotlight tour ------------------------------------------
+  const TOUR = [
+    { sel: null, title: 'Welcome 👋', body: 'PBL Group Builder turns your roster into balanced, tutor-led PBL groups. Here’s a 20-second tour. Example data is loaded so you can explore as we go.' },
+    { sel: '.transport', title: 'Load your roster', body: 'Open an .xlsx/.csv, Paste rows from Excel or Google Sheets, or start from the Template. Export lives here too.' },
+    { sel: '.tabbar', title: 'Edit your data', body: 'Review and edit here. Switch between Students, Tutors, and Conflicts with the tabs, and add people with + Add.' },
+    { sel: '#appTabs', title: 'Build the groups', body: 'When the roster looks good, switch to Groups, pick the unit and class year, and Solve. Drag to adjust and lock students, then re-solve.' },
+    { sel: '#btnExport', title: 'Export is your master', body: 'Export the workbook when you’re done. That file becomes your master — open it next unit so history carries forward.' },
+    { sel: '#btnHelp', title: 'Anytime help', body: 'Re-run this tour or open the step-by-step guide from here whenever you need it.' },
+  ];
+  let tourI = 0;
+  const tourSeen = () => { try { return localStorage.getItem('pbl.tourSeen') === '1'; } catch (e) { return true; } };
+  const markTourSeen = () => { try { localStorage.setItem('pbl.tourSeen', '1'); } catch (e) {} };
+  function showTourStep() {
+    const s = TOUR[tourI], spot = $('tourSpot'), tip = $('tourTip');
+    $('tourTipTitle').textContent = s.title;
+    $('tourTipBody').textContent = s.body;
+    $('tourStep').textContent = `${tourI + 1} / ${TOUR.length}`;
+    $('tourBack').disabled = tourI === 0;
+    $('tourNext').textContent = tourI === TOUR.length - 1 ? 'Done' : 'Next';
+    const el = s.sel ? document.querySelector(s.sel) : null;
+    if (el) {
+      el.scrollIntoView({ block: 'nearest' });
+      const r = el.getBoundingClientRect(), pad = 6;
+      spot.style.left = (r.left - pad) + 'px'; spot.style.top = (r.top - pad) + 'px';
+      spot.style.width = (r.width + pad * 2) + 'px'; spot.style.height = (r.height + pad * 2) + 'px';
+      const tw = 320, th = tip.offsetHeight || 170;
+      let top = r.bottom + 12; if (top + th > window.innerHeight - 8) top = Math.max(8, r.top - th - 12);
+      const left = Math.min(Math.max(8, r.left), window.innerWidth - tw - 8);
+      tip.style.left = left + 'px'; tip.style.top = top + 'px'; tip.style.transform = '';
+    } else {
+      spot.style.left = '50%'; spot.style.top = '50%'; spot.style.width = '0'; spot.style.height = '0';
+      tip.style.left = '50%'; tip.style.top = '42%'; tip.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+  function startTour() { tourI = 0; $('tour').classList.remove('hidden'); showTourStep(); $('tourNext').focus(); }
+  function endTour() { $('tour').classList.add('hidden'); markTourSeen(); }
+  $('tourNext').onclick = () => { if (tourI >= TOUR.length - 1) endTour(); else { tourI++; showTourStep(); } };
+  $('tourBack').onclick = () => { if (tourI > 0) { tourI--; showTourStep(); } };
+  $('tourSkip').onclick = endTour;
+  $('helpTour').onclick = () => { closeHelp(); startTour(); };
+  if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { if (!$('tour').classList.contains('hidden')) showTourStep(); });
+  document.addEventListener('keydown', (e) => {
+    if ($('tour').classList.contains('hidden')) return;
+    if (e.key === 'Escape') endTour();
+    else if (e.key === 'ArrowRight') $('tourNext').click();
+    else if (e.key === 'ArrowLeft') $('tourBack').click();
+  });
+
   // Add-record ingest form: Cancel / Add & new / Add; scrim + Escape close; Enter (in a text field) adds.
   const closeForm = () => $('formModal').classList.add('hidden');
   $('formCancel').onclick = closeForm;
@@ -2674,6 +2752,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // immediately. Gated on a real DOM (skipped under the headless test harness).
   if (typeof document !== 'undefined' && document.body) {
     loadWorkbook(makeExample(), 'Example data (80 students) — edit freely', null, true);
+    if (!tourSeen()) setTimeout(startTour, 700);   // first-run spotlight tour (re-runnable from ?)
   }
   </script>
 </body>
