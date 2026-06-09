@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>PBL Group Builder</title>
+  <title>OME OS — PBL Group Builder</title>
   <style>
     /* Light theme only (no dark-mode switch — see spec/CLAUDE.md). */
     :root {
@@ -45,6 +45,50 @@
     h2.section { font-size: 1.05rem; font-weight: 700; color: var(--brand-dark);
       margin: 1.6rem 0 0.2rem; letter-spacing: 0.01em; }
     h2.section + .section-sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 0.4rem; }
+    /* ---- OME OS shell: fixed tool sidebar + tool body ---- */
+    .os { min-height: 100vh; }
+    .os-nav { position: fixed; left: 0; top: 0; bottom: 0; width: 224px; z-index: 40;
+      background: var(--surface); border-right: 1px solid var(--line);
+      display: flex; flex-direction: column; overflow-y: auto;
+      transition: width 0.15s ease; }
+    .os-brand { display: flex; align-items: center; gap: 0.55rem; padding: 0.9rem 0.95rem;
+      border-bottom: 1px solid var(--line); }
+    .os-logo { flex: 0 0 auto; width: 30px; height: 30px; background: #fff; border: 1px solid var(--line); border-radius: 7px; padding: 2px; }
+    .os-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .os-name { font-weight: 800; font-size: 1.1rem; color: var(--brand-dark); white-space: nowrap; }
+    .os-collapse { margin-left: auto; flex: 0 0 auto; width: 26px; height: 26px; line-height: 1;
+      background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--muted); cursor: pointer; }
+    .os-collapse:hover { background: var(--accent-bg); color: var(--fg); }
+    .os-tools { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.6rem; flex: 1 1 auto; }
+    .os-tool { display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
+      padding: 0.55rem 0.6rem; border: 0; background: none; border-radius: 8px; cursor: pointer;
+      color: var(--fg); font: inherit; font-size: 0.92rem; }
+    .os-tool:hover:not([disabled]) { background: var(--accent-bg); }
+    .os-tool.active { background: var(--accent-bg); color: var(--brand-dark); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+    .os-tool[disabled] { color: var(--muted); cursor: default; }
+    .os-tool .icon { flex: 0 0 auto; width: 20px; height: 20px; }
+    .os-tool .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .os-tool .soon { margin-left: auto; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.03em;
+      color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 0.25rem; }
+    .os-foot { padding: 0.7rem 0.95rem; border-top: 1px solid var(--line); font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+    .os-body { margin-left: 224px; min-width: 0; transition: margin 0.15s ease; }
+    .tool-panel[hidden] { display: none; }
+    /* Collapsed → icon rail */
+    .os.collapsed .os-nav { width: 56px; }
+    .os.collapsed .os-body { margin-left: 56px; }
+    .os.collapsed .os-name, .os.collapsed .os-tool .label, .os.collapsed .os-tool .soon, .os.collapsed .os-foot { display: none; }
+    .os.collapsed .os-tool { justify-content: center; padding: 0.55rem 0; }
+    .os.collapsed .os-collapse { transform: rotate(180deg); margin: 0 auto; }
+    .os.collapsed .os-brand { justify-content: center; padding: 0.9rem 0.4rem; gap: 0; }
+    .os.collapsed .os-logo { display: none; }
+    @media (max-width: 760px) {
+      .os-nav { position: static; width: auto; flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .os-brand { border-bottom: 0; border-right: 1px solid var(--line); }
+      .os-tools { flex-direction: row; flex: 1; }
+      .os-foot, .os-collapse { display: none; }
+      .os-body { margin-left: 0; }
+      .os.collapsed .os-nav { width: auto; } .os.collapsed .os-body { margin-left: 0; }
+    }
     /* Light masthead: white surface, deep-green wordmark, single green accent rule. */
     header {
       padding: 0.9rem 1.5rem;
@@ -453,17 +497,27 @@
   </style>
 </head>
 <body>
-  <header>
-    <!-- LOGO: referenced relatively (works on GitHub Pages and via file://); build.mjs
-         inlines it as a data URI for the single self-contained file. Never a remote URL. -->
-    <span class="logo">
-      <img src="vendor/jabsom-logo.svg" alt="John A. Burns School of Medicine">
-    </span>
-    <div class="masthead">
-      <h1>PBL Group Builder</h1>
-      <p class="tag">JABSOM Problem-Based Learning group assignment &mdash; MD1&ndash;MD7</p>
-    </div>
-  </header>
+  <div class="os" id="os">
+    <!-- Platform sidebar: brand + tool list (extensible via the TOOLS registry). -->
+    <aside class="os-nav" id="osNav">
+      <div class="os-brand">
+        <!-- LOGO: relative path; build.mjs inlines it as a data URI for the single file. Never remote. -->
+        <span class="os-logo"><img src="vendor/jabsom-logo.svg" alt="JABSOM"></span>
+        <span class="os-name">OME&nbsp;OS</span>
+        <button id="osCollapse" class="os-collapse" title="Collapse sidebar" aria-label="Toggle sidebar">‹</button>
+      </div>
+      <nav class="os-tools" id="osTools" aria-label="Tools"></nav>
+      <div class="os-foot">Office of Medical Education</div>
+    </aside>
+
+    <div class="os-body">
+      <section id="tool-pbl" class="tool-panel">
+        <header>
+          <div class="masthead">
+            <h1>PBL Group Builder</h1>
+            <p class="tag">JABSOM Problem-Based Learning group assignment &mdash; MD1&ndash;MD7</p>
+          </div>
+        </header>
 
   <nav class="apptabs" aria-label="Views and actions">
     <div class="apptab-group" id="appTabs" role="tablist" aria-label="Views">
@@ -584,6 +638,10 @@
 
     <p class="footnote">Runs entirely in your browser — no data leaves your computer.</p>
   </main>
+      </section>
+      <!-- Future tools mount here as additional .tool-panel sections (hidden until selected). -->
+    </div>
+  </div>
 
   <!-- Printable roster: hidden on screen, shown only when printing (Save as PDF). -->
   <div id="printRoster" class="print-only"></div>
@@ -710,7 +768,16 @@
     unlock: _svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-1.8"/>'),
     trash:  _svg('<path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/>'),
     plus:   _svg('<path d="M12 5v14"/><path d="M5 12h14"/>'),
+    group:  _svg('<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 6.5a3 3 0 0 1 0 5.8"/><path d="M18 19a5 5 0 0 0-3-4.6"/>'),
+    tools:  _svg('<path d="M14 7l3 3"/><path d="M5 19l8.5-8.5a3.5 3.5 0 1 0-3-3L2 16v3h3z"/>'),
   };
+
+  // ---- OME OS: tool registry (add a tool here + a matching #tool-<id> .tool-panel) ----
+  const TOOLS = [
+    { id: 'pbl', name: 'PBL Group Builder', icon: 'group', available: true },
+    { id: 'soon', name: 'More tools coming', icon: 'tools', available: false },
+  ];
+  let activeTool = 'pbl';
 
   // ---- Display labels --------------------------------------------------
   // The workbook round-trip needs the exact canonical keys/values, so we keep
@@ -2453,6 +2520,24 @@
   }
 
   // ---- Wiring ------------------------------------------------------------
+  // OME OS shell: render the tool list, switch panels, collapse the sidebar.
+  function renderTools() {
+    $('osTools').innerHTML = TOOLS.map(t =>
+      `<button class="os-tool${t.id === activeTool ? ' active' : ''}" data-tool="${t.id}"${t.available ? '' : ' disabled'} title="${escapeAttr(t.name)}">` +
+      `${ICONS[t.icon] || ICONS.tools}<span class="label">${escapeHtml(t.name)}</span>${t.available ? '' : '<span class="soon">soon</span>'}</button>`).join('');
+  }
+  function selectTool(id) {
+    const t = TOOLS.find(x => x.id === id); if (!t || !t.available) return;
+    activeTool = id;
+    document.querySelectorAll('.tool-panel').forEach(p => { p.hidden = p.id !== 'tool-' + id; });
+    $('osTools').querySelectorAll('.os-tool').forEach(b => b.classList.toggle('active', b.dataset.tool === id));
+  }
+  renderTools();
+  $('osTools').addEventListener('click', (e) => { const b = e.target.closest('.os-tool'); if (b && !b.disabled) selectTool(b.dataset.tool); });
+  function setNavCollapsed(on) { $('os').classList.toggle('collapsed', on); try { localStorage.setItem('pbl.navCollapsed', on ? '1' : '0'); } catch (e) {} }
+  $('osCollapse').onclick = () => setNavCollapsed(!$('os').classList.contains('collapsed'));
+  try { if (localStorage.getItem('pbl.navCollapsed') === '1') setNavCollapsed(true); } catch (e) {}
+
   // Help dialog (how-it-works): open from the header "?", close on button / scrim / Escape.
   const openHelp = () => { $('helpModal').classList.remove('hidden'); $('helpClose').focus(); };
   const closeHelp = () => $('helpModal').classList.add('hidden');
