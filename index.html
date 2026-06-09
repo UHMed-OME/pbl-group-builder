@@ -118,6 +118,25 @@
     .masthead { min-width: 0; display: flex; align-items: baseline; gap: 0.55rem; flex-wrap: wrap; }
     h1 { margin: 0; font-size: 1.05rem; letter-spacing: 0.01em; font-weight: 700; color: var(--brand-dark); }
     .tag { color: var(--muted); margin: 0; font-size: 0.82rem; }
+    .tool-empty { max-width: 980px; padding: 1.25rem 1.75rem 4rem; }
+    .proc-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr); gap: 1rem; align-items: start; }
+    .proc-panel { border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--bg); box-shadow: var(--e1); }
+    .proc-panel h2 { margin: 0; padding: 0.8rem 1rem; font-size: 0.95rem; color: var(--brand-dark); border-bottom: 1px solid var(--line); }
+    .proc-body { padding: 1rem; display: grid; gap: 0.85rem; }
+    .proc-field { display: grid; gap: 0.25rem; font-weight: 600; font-size: 0.9rem; }
+    .proc-field input, .proc-field select, .proc-field textarea { width: 100%; font: inherit; padding: 0.5rem 0.6rem;
+      border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--fg); }
+    .proc-field textarea { min-height: 86px; resize: vertical; }
+    .proc-checks { display: grid; gap: 0.45rem; }
+    .proc-checks label { display: flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; }
+    .proc-result { display: grid; gap: 0.75rem; }
+    .proc-route { padding: 0.8rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+    .proc-route.ok { border-color: var(--accent); background: var(--accent-bg); }
+    .proc-route.warn { border-color: var(--warn); background: var(--warn-bg); }
+    .proc-route b { display: block; color: var(--brand-dark); margin-bottom: 0.15rem; }
+    .proc-list { margin: 0; padding-left: 1.15rem; color: var(--muted); font-size: 0.9rem; }
+    .proc-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    @media (max-width: 900px) { .proc-grid { grid-template-columns: 1fr; } }
     /* Transport lives on the right of the Roster/Groups tab row. */
     .apptabs .tool-actions { margin-left: auto; }
     /* Icon transport bar (lives in the top bar) */
@@ -668,6 +687,88 @@
     <p class="footnote">Runs entirely in your browser — no data leaves your computer.</p>
   </main>
       </section>
+      <section id="tool-proc" class="tool-panel" hidden>
+        <header class="tool-head">
+          <div class="masthead">
+            <h1>Procurement Wizard</h1>
+            <p class="tag">Draft the likely purchasing path and document checklist before submitting.</p>
+          </div>
+        </header>
+
+        <main class="tool-empty">
+          <div class="proc-grid">
+            <section class="proc-panel" aria-labelledby="procInputTitle">
+              <h2 id="procInputTitle">Request details</h2>
+              <div class="proc-body">
+                <label class="proc-field">Estimated total
+                  <input id="procAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                </label>
+                <label class="proc-field">Purchase type
+                  <select id="procType">
+                    <option value="supplies">Supplies or materials</option>
+                    <option value="equipment">Equipment</option>
+                    <option value="software">Software, subscription, or IT</option>
+                    <option value="services">Services or consulting</option>
+                    <option value="travel">Travel or registration</option>
+                    <option value="food">Food or event expense</option>
+                  </select>
+                </label>
+                <label class="proc-field">Vendor status
+                  <select id="procVendor">
+                    <option value="uh">UH vendor or existing supplier</option>
+                    <option value="new">New vendor</option>
+                    <option value="unknown">Not sure yet</option>
+                  </select>
+                </label>
+                <label class="proc-field">Quotes in hand
+                  <select id="procQuotes">
+                    <option value="0">None yet</option>
+                    <option value="1">1 quote</option>
+                    <option value="2">2 quotes</option>
+                    <option value="3">3 or more quotes</option>
+                  </select>
+                </label>
+                <div class="proc-checks" aria-label="Special conditions">
+                  <label><input id="procContract" type="checkbox"> Existing contract, price list, or approved agreement</label>
+                  <label><input id="procSole" type="checkbox"> Only one practical source</label>
+                  <label><input id="procUrgent" type="checkbox"> Needed urgently</label>
+                </div>
+                <label class="proc-field">Notes for the request
+                  <textarea id="procNotes" placeholder="Purpose, funding source, deadline, delivery location, or other context"></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="proc-panel" aria-labelledby="procResultTitle">
+              <h2 id="procResultTitle">Recommended next step</h2>
+              <div class="proc-body proc-result">
+                <div id="procRoute" class="proc-route">
+                  <b>Enter a total to begin.</b>
+                  <span class="hint">This helper prepares the request; final routing still follows UH/JABSOM procurement review.</span>
+                </div>
+                <div>
+                  <b>Document checklist</b>
+                  <ul id="procDocs" class="proc-list">
+                    <li>Business purpose</li>
+                    <li>Estimated total</li>
+                  </ul>
+                </div>
+                <div>
+                  <b>Submission notes</b>
+                  <ul id="procSteps" class="proc-list">
+                    <li>Complete the request details.</li>
+                  </ul>
+                </div>
+                <div class="proc-actions">
+                  <button id="procCopy">Copy summary</button>
+                  <button id="procReset">Reset</button>
+                </div>
+                <p id="procMsg" class="hint" aria-live="polite"></p>
+              </div>
+            </section>
+          </div>
+        </main>
+      </section>
       <!-- Future tools mount here as additional .tool-panel sections (hidden until selected). -->
     </div>
   </div>
@@ -799,11 +900,13 @@
     plus:   _svg('<path d="M12 5v14"/><path d="M5 12h14"/>'),
     group:  _svg('<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 6.5a3 3 0 0 1 0 5.8"/><path d="M18 19a5 5 0 0 0-3-4.6"/>'),
     tools:  _svg('<path d="M14 7l3 3"/><path d="M5 19l8.5-8.5a3.5 3.5 0 1 0-3-3L2 16v3h3z"/>'),
+    cart:   _svg('<circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/><path d="M3 4h2l2.4 12.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6"/>'),
   };
 
   // ---- OME OS: tool registry (add a tool here + a matching #tool-<id> .tool-panel) ----
   const TOOLS = [
     { id: 'pbl', name: 'PBL Group Builder', icon: 'group', available: true },
+    { id: 'proc', name: 'Procurement Wizard', icon: 'cart', available: true },
     { id: 'soon', name: 'More tools coming', icon: 'tools', available: false },
   ];
   let activeTool = 'pbl';
@@ -2858,6 +2961,124 @@
   $('btnExportStep').onclick = doExport;
   $('btnPrint').onclick = printRoster;
   $('btnBuildStep').onclick = () => showView('groups');
+
+  // ---- Procurement Wizard -----------------------------------------------
+  function procValue(id) {
+    const el = $(id);
+    return el ? el.value : '';
+  }
+  function procChecked(id) {
+    const el = $(id);
+    return !!(el && el.checked);
+  }
+  function procurementSummary() {
+    const amount = parseFloat(procValue('procAmount'));
+    const type = procValue('procType');
+    const vendor = procValue('procVendor');
+    const quotes = parseInt(procValue('procQuotes') || '0', 10);
+    const contract = procChecked('procContract');
+    const sole = procChecked('procSole');
+    const urgent = procChecked('procUrgent');
+    let title = 'Enter a total to begin.';
+    let body = 'This helper prepares the request; final routing still follows UH/JABSOM procurement review.';
+    let level = '';
+    const docs = ['Business purpose', 'Estimated total'];
+    const steps = ['Confirm funding source and approver before submission.'];
+
+    if (Number.isFinite(amount) && amount > 0) {
+      docs.push('Vendor name and contact', 'Itemized quote or cart');
+      if (vendor !== 'uh') docs.push('New vendor setup details');
+      if (type === 'software') docs.push('IT/security review notes', 'License term and user count');
+      if (type === 'services') docs.push('Scope of work', 'Service dates');
+      if (type === 'travel') docs.push('Traveler, destination, dates, and agenda');
+      if (type === 'food') docs.push('Attendee count and event purpose');
+      if (sole) docs.push('Sole-source justification');
+      if (contract) docs.push('Contract, agreement, or price-list reference');
+      if (quotes > 0) docs.push(`${quotes} quote${quotes === 1 ? '' : 's'} attached`);
+
+      if (type === 'travel') {
+        title = 'Use travel/event routing.';
+        body = 'Treat this as a travel or registration request first, then attach the purchasing details.';
+        level = 'warn';
+        steps.push('Send through the travel/event process with the agenda and dates.');
+      } else if (contract) {
+        title = 'Purchase against the existing agreement.';
+        body = 'Attach the agreement reference and quote so procurement can validate pricing and route the requisition.';
+        level = 'ok';
+        steps.push('Include the contract or price-list reference in the requisition notes.');
+      } else if (amount < 2500 && type !== 'services' && type !== 'software') {
+        title = 'Likely PCard or simple purchase.';
+        body = 'If the vendor accepts card payment and the item is allowable, this can usually stay lightweight.';
+        level = 'ok';
+        steps.push('Confirm PCard allowability and retain the receipt.');
+      } else if (amount >= 25000 && quotes < 3 && !sole) {
+        title = 'Gather competitive quotes before submission.';
+        body = 'The estimate is high enough that procurement will likely need more competition documentation.';
+        level = 'warn';
+        steps.push('Request additional quotes or document why competition is not practical.');
+      } else if (sole) {
+        title = 'Prepare a sole-source packet.';
+        body = 'Explain why this vendor/item is uniquely required and attach supporting material.';
+        level = 'warn';
+        steps.push('Write the sole-source rationale before sending the requisition.');
+      } else {
+        title = 'Submit a purchase requisition.';
+        body = 'Attach the quote and request context so procurement can route the order.';
+        level = 'ok';
+        steps.push('Submit the requisition with quote, purpose, vendor, and delivery details.');
+      }
+      if (urgent) steps.push('Flag the deadline and the consequence of delay in the request notes.');
+    }
+    return { amount, type, vendor, quotes, contract, sole, urgent, title, body, level, docs, steps, notes: procValue('procNotes') };
+  }
+  function renderProcurement() {
+    const s = procurementSummary();
+    const route = $('procRoute');
+    route.className = `proc-route${s.level ? ' ' + s.level : ''}`;
+    route.innerHTML = `<b>${escapeHtml(s.title)}</b><span>${escapeHtml(s.body)}</span>`;
+    $('procDocs').innerHTML = s.docs.map(d => `<li>${escapeHtml(d)}</li>`).join('');
+    $('procSteps').innerHTML = s.steps.map(d => `<li>${escapeHtml(d)}</li>`).join('');
+  }
+  function procurementText() {
+    const s = procurementSummary();
+    const amount = Number.isFinite(s.amount) ? `$${s.amount.toFixed(2)}` : 'Not entered';
+    return [
+      'Procurement Wizard Summary',
+      `Recommended next step: ${s.title}`,
+      `Estimated total: ${amount}`,
+      `Purchase type: ${$('procType').selectedOptions[0].text}`,
+      `Vendor status: ${$('procVendor').selectedOptions[0].text}`,
+      `Quotes in hand: ${$('procQuotes').selectedOptions[0].text}`,
+      `Special conditions: ${[s.contract && 'existing agreement', s.sole && 'sole source', s.urgent && 'urgent'].filter(Boolean).join(', ') || 'none'}`,
+      '',
+      'Documents:',
+      ...s.docs.map(d => `- ${d}`),
+      '',
+      'Notes:',
+      s.notes || '(none)',
+    ].join('\n');
+  }
+  function initProcurement() {
+    ['procAmount', 'procType', 'procVendor', 'procQuotes', 'procContract', 'procSole', 'procUrgent', 'procNotes']
+      .forEach(id => $(id).addEventListener('input', renderProcurement));
+    $('procCopy').onclick = async () => {
+      const text = procurementText();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+        $('procMsg').textContent = 'Summary copied.';
+      } catch (e) {
+        $('procMsg').textContent = text;
+      }
+    };
+    $('procReset').onclick = () => {
+      $('procAmount').value = ''; $('procType').value = 'supplies'; $('procVendor').value = 'uh'; $('procQuotes').value = '0';
+      ['procContract', 'procSole', 'procUrgent'].forEach(id => { $(id).checked = false; });
+      $('procNotes').value = ''; $('procMsg').textContent = '';
+      renderProcurement();
+    };
+    renderProcurement();
+  }
+  if (typeof document !== 'undefined' && document.body) initProcurement();
 
   // Warn before leaving with unsaved edits / an unexported solve. (Guarded for the
   // headless test, which has no window.)
