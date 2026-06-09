@@ -47,44 +47,52 @@
     h2.section + .section-sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 0.4rem; }
     /* ---- OME OS shell: fixed tool sidebar + tool body ---- */
     .os { min-height: 100vh; }
-    .os-nav { position: fixed; left: 0; top: 0; bottom: 0; width: 224px; z-index: 40;
-      background: var(--surface); border-right: 1px solid var(--line);
-      display: flex; flex-direction: column; overflow-y: auto;
-      transition: width 0.15s ease; }
-    .os-brand { display: flex; align-items: center; gap: 0.55rem; padding: 0.9rem 0.95rem;
-      border-bottom: 1px solid var(--line); }
-    .os-logo { flex: 0 0 auto; width: 30px; height: 30px; background: #fff; border: 1px solid var(--line); border-radius: 7px; padding: 2px; }
+    .os-nav { position: fixed; left: 0; top: 0; bottom: 0; width: 230px; z-index: 40;
+      background: var(--bg); border-right: 1px solid var(--line);
+      display: flex; flex-direction: column; overflow-y: auto; transition: width 0.15s ease; }
+    .os-brand { display: flex; align-items: center; gap: 0.6rem; padding: 1rem 1rem 0.85rem; }
+    .os-logo { flex: 0 0 auto; width: 28px; height: 28px; }
     .os-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
-    .os-name { font-weight: 800; font-size: 1.1rem; color: var(--brand-dark); white-space: nowrap; }
-    .os-collapse { margin-left: auto; flex: 0 0 auto; width: 26px; height: 26px; line-height: 1;
-      background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--muted); cursor: pointer; }
-    .os-collapse:hover { background: var(--accent-bg); color: var(--fg); }
-    .os-tools { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.6rem; flex: 1 1 auto; }
-    .os-tool { display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
-      padding: 0.55rem 0.6rem; border: 0; background: none; border-radius: 8px; cursor: pointer;
+    .os-name { font-weight: 700; font-size: 1.05rem; color: var(--brand-dark); letter-spacing: 0.02em; white-space: nowrap; }
+    .os-collapse { margin-left: auto; flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px;
+      background: none; border: 0; border-radius: 7px; color: var(--muted); cursor: pointer; }
+    .os-collapse svg { width: 17px; height: 17px; transition: transform 0.15s ease; }
+    .os-collapse:hover { background: var(--accent-bg); color: var(--brand-dark); }
+    .os-collapse:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .os-seclabel { padding: 0.5rem 1.15rem 0.25rem; font-size: 0.66rem; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+    .os-tools { display: flex; flex-direction: column; gap: 2px; padding: 0 0.55rem; flex: 1 1 auto; }
+    .os-tool { display: flex; align-items: center; gap: 0.65rem; width: 100%; text-align: left;
+      padding: 0.5rem 0.65rem; border: 0; background: none; border-radius: 9px; cursor: pointer;
       color: var(--fg); font: inherit; font-size: 0.92rem; }
-    .os-tool:hover:not([disabled]) { background: var(--accent-bg); }
-    .os-tool.active { background: var(--accent-bg); color: var(--brand-dark); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
-    .os-tool[disabled] { color: var(--muted); cursor: default; }
-    .os-tool .icon { flex: 0 0 auto; width: 20px; height: 20px; }
+    .os-tool:hover:not([disabled]) { background: var(--surface); }
+    .os-tool.active { background: var(--accent-bg); color: var(--brand-dark); font-weight: 600; }
+    .os-tool.active .icon { color: var(--accent); }
+    .os-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .os-tool[disabled] { color: var(--muted); cursor: default; opacity: 0.75; }
+    .os-tool .icon { flex: 0 0 auto; width: 19px; height: 19px; }
     .os-tool .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .os-tool .soon { margin-left: auto; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.03em;
-      color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 0.25rem; }
-    .os-foot { padding: 0.7rem 0.95rem; border-top: 1px solid var(--line); font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
-    .os-body { margin-left: 224px; min-width: 0; transition: margin 0.15s ease; }
+    .os-tool .soon { margin-left: auto; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface); border-radius: 5px; padding: 0.08rem 0.32rem; }
+    .os-foot { padding: 0.8rem 1.15rem; font-size: 0.7rem; color: var(--muted); white-space: nowrap; border-top: 1px solid var(--line); }
+    .os-body { margin-left: 230px; min-width: 0; transition: margin 0.15s ease; }
     .tool-panel[hidden] { display: none; }
-    /* Collapsed → icon rail */
-    .os.collapsed .os-nav { width: 56px; }
-    .os.collapsed .os-body { margin-left: 56px; }
-    .os.collapsed .os-name, .os.collapsed .os-tool .label, .os.collapsed .os-tool .soon, .os.collapsed .os-foot { display: none; }
-    .os.collapsed .os-tool { justify-content: center; padding: 0.55rem 0; }
-    .os.collapsed .os-collapse { transform: rotate(180deg); margin: 0 auto; }
-    .os.collapsed .os-brand { justify-content: center; padding: 0.9rem 0.4rem; gap: 0; }
+    /* Collapsed → clean icon rail */
+    .os.collapsed .os-nav { width: 58px; }
+    .os.collapsed .os-body { margin-left: 58px; }
+    .os.collapsed .os-name, .os.collapsed .os-tool .label, .os.collapsed .os-tool .soon,
+    .os.collapsed .os-foot, .os.collapsed .os-seclabel { display: none; }
+    .os.collapsed .os-tool { justify-content: center; padding: 0.5rem 0; }
+    .os.collapsed .os-collapse svg { transform: rotate(180deg); }
+    .os.collapsed .os-collapse { margin: 0 auto; }
+    .os.collapsed .os-brand { justify-content: center; padding: 1rem 0.4rem 0.85rem; gap: 0; }
     .os.collapsed .os-logo { display: none; }
     @media (max-width: 760px) {
-      .os-nav { position: static; width: auto; flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-      .os-brand { border-bottom: 0; border-right: 1px solid var(--line); }
-      .os-tools { flex-direction: row; flex: 1; }
+      .os-nav { position: static; width: auto; flex-direction: row; align-items: center; overflow-x: auto;
+        border-right: 0; border-bottom: 1px solid var(--line); }
+      .os-brand { padding: 0.6rem 0.9rem; border-right: 1px solid var(--line); }
+      .os-seclabel { display: none; }
+      .os-tools { flex-direction: row; flex: 1; padding: 0.4rem; }
       .os-foot, .os-collapse { display: none; }
       .os-body { margin-left: 0; }
       .os.collapsed .os-nav { width: auto; } .os.collapsed .os-body { margin-left: 0; }
@@ -504,8 +512,11 @@
         <!-- LOGO: relative path; build.mjs inlines it as a data URI for the single file. Never remote. -->
         <span class="os-logo"><img src="vendor/jabsom-logo.svg" alt="JABSOM"></span>
         <span class="os-name">OME&nbsp;OS</span>
-        <button id="osCollapse" class="os-collapse" title="Collapse sidebar" aria-label="Toggle sidebar">‹</button>
+        <button id="osCollapse" class="os-collapse" title="Collapse sidebar" aria-label="Toggle sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
       </div>
+      <div class="os-seclabel">Tools</div>
       <nav class="os-tools" id="osTools" aria-label="Tools"></nav>
       <div class="os-foot">Office of Medical Education</div>
     </aside>
