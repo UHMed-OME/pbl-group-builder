@@ -109,13 +109,13 @@
     .tk-title { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
     .tk-title b { font-size: 1rem; font-weight: 700; color: var(--brand-dark); letter-spacing: 0.01em; white-space: nowrap; }
     .tk-title .tk-sub { font-size: 0.74rem; color: var(--muted); white-space: nowrap; }
-    .tk-right { margin-left: auto; display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
     .tool-actions { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
     .tool-actions[hidden] { display: none; }
-    .tk-right #loadedName { min-width: 0; max-width: 30vw; }
-    /* Tool sub-header (per-tool title), sits under the top bar. */
+    .tool-actions #loadedName { min-width: 0; max-width: 26vw; }
+    /* Tool sub-header (per-tool title + that tool's actions, inline on the right). */
     .tool-head { padding: 0.85rem 1.5rem; background: var(--bg); border-bottom: 1px solid var(--line);
-      display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
+      display: flex; align-items: center; gap: 0.85rem 1rem; flex-wrap: wrap; }
+    .tool-head .tool-actions { margin-left: auto; }
     .masthead { min-width: 0; }
     h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.01em; font-weight: 700; color: var(--brand-dark); }
     .tag { color: var(--muted); margin: 0.15rem 0 0; font-size: 0.9rem; }
@@ -509,7 +509,7 @@
       .apptab { padding: 0.65rem 0.8rem; }
       .gcol { flex-basis: 80vw; }
       .solvebar { gap: 0.7rem; }
-      .tk-right #loadedName { display: none; }   /* keep the top bar compact on phones */
+      .tool-actions #loadedName { display: none; }   /* keep the tool header compact on phones */
     }
   </style>
 </head>
@@ -521,42 +521,6 @@
         <!-- LOGO: relative path; build.mjs inlines it as a data URI for the single file. Never remote. -->
         <span class="tk-logo"><img src="vendor/jabsom-logo.svg" alt="JABSOM"></span>
         <span class="tk-title"><b>Office of Medical Education</b><span class="tk-sub">Web Toolkit</span></span>
-      </div>
-      <div class="tk-right">
-        <!-- Active tool's actions render here (scoped by data-tool); not global. -->
-        <div class="tool-actions" data-tool="pbl">
-        <span id="loadedName" class="tag"></span>
-        <div class="transport" role="toolbar" aria-label="PBL Group Builder actions">
-      <button id="btnExample" class="iconbtn" title="Load example data" aria-label="Load example data">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v4M3 5h4"/><path d="M18 14v4M16 16h4"/><path d="M12 5l2.4 5.6L20 13l-5.6 2.4L12 21l-2.4-5.6L4 13l5.6-2.4z"/></svg><span class="btn-lbl">Example</span>
-      </button>
-      <label class="iconbtn" title="Open workbook (.xlsx / .csv)" aria-label="Open workbook">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a1 1 0 0 1 1-1h4l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg><span class="btn-lbl">Open</span>
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-      </label>
-      <button id="btnPaste" class="iconbtn" title="Paste rows from Excel / Google Sheets" aria-label="Paste rows">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg><span class="btn-lbl">Paste</span>
-      </button>
-      <button id="btnTemplate" class="iconbtn" title="Download blank template" aria-label="Download blank template">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span class="btn-lbl">Template</span>
-      </button>
-      <span class="tsep" aria-hidden="true"></span>
-      <button id="btnUndo" class="iconbtn" disabled title="Undo (Ctrl+Z)" aria-label="Undo">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
-      </button>
-      <button id="btnRedo" class="iconbtn" disabled title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
-      </button>
-      <span class="tsep" aria-hidden="true"></span>
-      <button id="btnExport" class="iconbtn primary" disabled title="Export workbook (.xlsx)" aria-label="Export workbook">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/></svg><span class="btn-lbl">Export</span>
-      </button>
-      <span class="tsep" aria-hidden="true"></span>
-      <button id="btnHelp" class="iconbtn" title="How it works" aria-label="How it works">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.5 0 1 1 3.4 2.3c-.8.4-1.4 1-1.4 1.9"/><path d="M12 17h.01"/></svg>
-      </button>
-        </div>
-        </div>
       </div>
     </header>
 
@@ -578,6 +542,39 @@
           <div class="masthead">
             <h1>PBL Group Builder</h1>
             <p class="tag">JABSOM Problem-Based Learning group assignment &mdash; MD1&ndash;MD7</p>
+          </div>
+          <div class="tool-actions" data-tool="pbl">
+            <span id="loadedName" class="tag"></span>
+            <div class="transport" role="toolbar" aria-label="PBL Group Builder actions">
+              <button id="btnExample" class="iconbtn" title="Load example data" aria-label="Load example data">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v4M3 5h4"/><path d="M18 14v4M16 16h4"/><path d="M12 5l2.4 5.6L20 13l-5.6 2.4L12 21l-2.4-5.6L4 13l5.6-2.4z"/></svg><span class="btn-lbl">Example</span>
+              </button>
+              <label class="iconbtn" title="Open workbook (.xlsx / .csv)" aria-label="Open workbook">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a1 1 0 0 1 1-1h4l2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg><span class="btn-lbl">Open</span>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+              </label>
+              <button id="btnPaste" class="iconbtn" title="Paste rows from Excel / Google Sheets" aria-label="Paste rows">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg><span class="btn-lbl">Paste</span>
+              </button>
+              <button id="btnTemplate" class="iconbtn" title="Download blank template" aria-label="Download blank template">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span class="btn-lbl">Template</span>
+              </button>
+              <span class="tsep" aria-hidden="true"></span>
+              <button id="btnUndo" class="iconbtn" disabled title="Undo (Ctrl+Z)" aria-label="Undo">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+              </button>
+              <button id="btnRedo" class="iconbtn" disabled title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+              </button>
+              <span class="tsep" aria-hidden="true"></span>
+              <button id="btnExport" class="iconbtn primary" disabled title="Export workbook (.xlsx)" aria-label="Export workbook">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/></svg><span class="btn-lbl">Export</span>
+              </button>
+              <span class="tsep" aria-hidden="true"></span>
+              <button id="btnHelp" class="iconbtn" title="How it works" aria-label="How it works">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.5 0 1 1 3.4 2.3c-.8.4-1.4 1-1.4 1.9"/><path d="M12 17h.01"/></svg>
+              </button>
+            </div>
           </div>
         </header>
 
