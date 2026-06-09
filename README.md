@@ -5,7 +5,7 @@ Problem-Based Learning group assignment. It splits a class into tutor-led groups
 respecting hard rules and optimizing soft preferences, and carries history forward so groups
 reshuffle across units.
 
-**▶ Live app: https://uhmed-ome.github.io/pbl-group-builder/**
+**▶ Live app: https://uhmed-ome.github.io/ometools/**
 
 Or download the single-file build [`dist/pbl-group-builder.html`](dist/pbl-group-builder.html)
 and double-click it — it runs entirely in your browser.
