@@ -138,6 +138,14 @@
     .proc-route.warn { border-color: var(--warn); background: var(--warn-bg); }
     .proc-route b { display: block; color: var(--brand-dark); margin-bottom: 0.15rem; }
     .proc-list { margin: 0; padding-left: 1.15rem; color: var(--muted); font-size: 0.9rem; }
+    .proc-list li { margin: 0.1rem 0; }
+    .proc-block:empty { display: none; }
+    .proc-block b { display: block; color: var(--brand-dark); margin-bottom: 0.2rem; font-size: 0.9rem; }
+    .proc-block p { margin: 0; font-size: 0.9rem; color: var(--fg); }
+    .proc-coop { padding: 0.6rem 0.7rem; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent-bg); }
+    .proc-gates { padding: 0.6rem 0.7rem; border-radius: 8px; border: 1px solid var(--warn); background: var(--warn-bg); }
+    .proc-links { list-style: none; padding-left: 0; display: grid; gap: 0.3rem; }
+    .proc-links a, .proc-coop a { color: var(--brand-dark); font-weight: 600; }
     .proc-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     @media (max-width: 900px) { .proc-grid { grid-template-columns: 1fr; } }
     /* Transport lives on the right of the Roster/Groups tab row. */
@@ -704,7 +712,7 @@
         <header class="tool-head">
           <div class="masthead">
             <h1>Procurement Wizard</h1>
-            <p class="tag">Draft the likely purchasing path and document checklist before submitting.</p>
+            <p class="tag">Build a submission packet — method, forms, and where to send it — based on what you’re buying.</p>
           </div>
         </header>
 
@@ -713,15 +721,26 @@
             <section class="proc-panel" aria-labelledby="procInputTitle">
               <h2 id="procInputTitle">Request details</h2>
               <div class="proc-body">
+                <label class="proc-field">Funding source
+                  <select id="procFund">
+                    <option value="uh">UH / State funds</option>
+                    <option value="rcuh">RCUH (extramural / grant)</option>
+                  </select>
+                </label>
                 <label class="proc-field">Estimated total
                   <input id="procAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
                 </label>
                 <label class="proc-field">Purchase type
                   <select id="procType">
                     <option value="supplies">Supplies or materials</option>
-                    <option value="equipment">Equipment</option>
-                    <option value="software">Software, subscription, or IT</option>
+                    <option value="computer">Computer / IT hardware</option>
+                    <option value="software">Software, subscription, or cloud</option>
+                    <option value="lab">Lab / research supplies</option>
+                    <option value="medical">Medical / clinical products</option>
+                    <option value="office">Office supplies / furniture</option>
+                    <option value="av">AV equipment</option>
                     <option value="services">Services or consulting</option>
+                    <option value="construction">Construction / facilities</option>
                     <option value="travel">Travel or registration</option>
                     <option value="food">Food or event expense</option>
                   </select>
@@ -757,8 +776,12 @@
               <div class="proc-body proc-result">
                 <div id="procRoute" class="proc-route">
                   <b>Enter a total to begin.</b>
-                  <span class="hint">This helper prepares the request; final routing still follows UH/JABSOM procurement review.</span>
+                  <span class="hint">This helper drafts the path, forms, and routing; final approval still follows UH / JABSOM / RCUH review.</span>
                 </div>
+                <div id="procRouteTo" class="proc-block"></div>
+                <div id="procCoop" class="proc-block proc-coop"></div>
+                <div id="procGates" class="proc-block proc-gates"></div>
+                <div id="procForms" class="proc-block"></div>
                 <div>
                   <b>Document checklist</b>
                   <ul id="procDocs" class="proc-list">
@@ -2991,95 +3014,140 @@
     const el = $(id);
     return !!(el && el.checked);
   }
-  function procurementSummary() {
-    const amount = parseFloat(procValue('procAmount'));
-    const type = procValue('procType');
-    const vendor = procValue('procVendor');
-    const quotes = parseInt(procValue('procQuotes') || '0', 10);
-    const contract = procChecked('procContract');
-    const sole = procChecked('procSole');
-    const urgent = procChecked('procUrgent');
-    let title = 'Enter a total to begin.';
-    let body = 'This helper prepares the request; final routing still follows UH/JABSOM procurement review.';
-    let level = '';
-    const docs = ['Business purpose', 'Estimated total'];
-    const steps = ['Confirm funding source and approver before submission.'];
+  // Forms / cooperative contracts / links from the OME Procurement Hub (Policies & Forms DB).
+  const PROC_FORMS = {
+    spoPVL:        { name: 'SPO Price & Vendor Lists (check for a contract first)', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/' },
+    hce:           { name: 'Hawaiʻi Compliance Express (HCE) — verify vendor', url: 'https://vendors.ehawaii.gov/hce/' },
+    dgp:           { name: 'UH Data Governance (DGP) request — for software/UH data', url: 'https://www.hawaii.edu/infosec/' },
+    soleUH:        { name: 'UH Sole Source Form (SPO-001)', url: 'https://www.hawaii.edu/policy/archives/apm/a8200/Forms/SPO-001.pdf' },
+    soleRCUH:      { name: 'RCUH Sole Source Justification (Attachment 02)', url: 'https://www.rcuh.com/document-library/2-000/procurement-contracts-2/attachment-2-sole-source-justification-form/' },
+    rcuhRFQ:       { name: 'RCUH Request for Quotation (2.103)', url: 'https://www.rcuh.com/policies-forms-documents/2-103-request-for-quotation.pdf' },
+    rcuhChecklist: { name: 'RCUH Procurement Checklist (Attachment 28)', url: 'https://www.rcuh.com/document-library/2-000/procurement-contracts-2/attachment-28-rcuh-procurement-checklist/' },
+    rcuhServices:  { name: 'RCUH Services Agreement (2.204)', url: 'https://www.rcuh.com/2-000/2-200/2-204/' },
+    opm:           { name: 'UH OPM forms & resources', url: 'https://www.hawaii.edu/procurement/' },
+  };
+  const PROC_COOP = {
+    computer: { ref: 'NASPO 24-03', name: 'Computer Equipment (desktops / laptops / servers)', url: 'https://www.naspovaluepoint.org/' },
+    software: { ref: 'SPO 17-18',  name: 'NASPO Cloud Solutions — Carahsoft / SHI / Insight', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/' },
+    lab:      { ref: 'SPO 24-13',  name: 'Lab Equipment & Supplies — Fisher / VWR / Nikon', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/' },
+    medical:  { ref: 'SPO 24-11',  name: 'MMCAP Medical Products — Henry Schein (membership first)', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/' },
+    office:   { ref: 'SPO 25-12 / NASPO 23-15', name: 'Office Supplies / Furniture — Office Depot, Fisher Hawaii, local dealers', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/' },
+    av:       { ref: 'SPO 26-14',  name: 'AV Equipment & Services — B&H Photo Video', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/' },
+  };
 
-    if (Number.isFinite(amount) && amount > 0) {
-      docs.push('Vendor name and contact', 'Itemized quote or cart');
-      if (vendor !== 'uh') docs.push('New vendor setup details');
-      if (type === 'software') docs.push('IT/security review notes', 'License term and user count');
-      if (type === 'services') docs.push('Scope of work', 'Service dates');
-      if (type === 'travel') docs.push('Traveler, destination, dates, and agenda');
-      if (type === 'food') docs.push('Attendee count and event purpose');
-      if (sole) docs.push('Sole-source justification');
-      if (contract) docs.push('Contract, agreement, or price-list reference');
-      if (quotes > 0) docs.push(`${quotes} quote${quotes === 1 ? '' : 's'} attached`);
+  // Pure decision engine: fund + category + amount → method, routing, forms, contract, checklist.
+  function procDecide(input) {
+    const amount = Number(input.amount), hasAmt = Number.isFinite(amount) && amount > 0;
+    const fund = input.fund === 'rcuh' ? 'rcuh' : 'uh';
+    const type = input.type || 'supplies', quotes = Number(input.quotes) || 0;
+    const r = { amount, fund, type, hasAmt, title: 'Enter a total to begin.',
+      body: 'This helper drafts the path, forms, and routing — final approval still follows UH / JABSOM / RCUH review.',
+      level: '', method: '', system: '', approver: '', routeTo: '', coop: PROC_COOP[type] || null,
+      gates: [], forms: [], docs: ['Business purpose', 'Estimated total'], steps: [],
+      contract: !!input.contractHeld, sole: !!input.sole, urgent: !!input.urgent };
+    if (!hasAmt) return r;
 
-      if (type === 'travel') {
-        title = 'Use travel/event routing.';
-        body = 'Treat this as a travel or registration request first, then attach the purchasing details.';
-        level = 'warn';
-        steps.push('Send through the travel/event process with the agenda and dates.');
-      } else if (contract) {
-        title = 'Purchase against the existing agreement.';
-        body = 'Attach the agreement reference and quote so procurement can validate pricing and route the requisition.';
-        level = 'ok';
-        steps.push('Include the contract or price-list reference in the requisition notes.');
-      } else if (amount < 2500 && type !== 'services' && type !== 'software') {
-        title = 'Likely PCard or simple purchase.';
-        body = 'If the vendor accepts card payment and the item is allowable, this can usually stay lightweight.';
-        level = 'ok';
-        steps.push('Confirm PCard allowability and retain the receipt.');
-      } else if (amount >= 25000 && quotes < 3 && !sole) {
-        title = 'Gather competitive quotes before submission.';
-        body = 'The estimate is high enough that procurement will likely need more competition documentation.';
-        level = 'warn';
-        steps.push('Request additional quotes or document why competition is not practical.');
-      } else if (sole) {
-        title = 'Prepare a sole-source packet.';
-        body = 'Explain why this vendor/item is uniquely required and attach supporting material.';
-        level = 'warn';
-        steps.push('Write the sole-source rationale before sending the requisition.');
-      } else {
-        title = 'Submit a purchase requisition.';
-        body = 'Attach the quote and request context so procurement can route the order.';
-        level = 'ok';
-        steps.push('Submit the requisition with quote, purpose, vendor, and delivery details.');
-      }
-      if (urgent) steps.push('Flag the deadline and the consequence of delay in the request notes.');
+    r.docs.push('Vendor name & contact', 'Itemized quote or cart');
+    r.steps.push('Check existing contracts first — SPO / NASPO price & vendor lists.');
+    r.forms.push(PROC_FORMS.spoPVL);
+
+    // Approval gates (apply regardless of amount)
+    if (type === 'software') { r.gates.push('If it stores or processes UH data, complete a Data Governance (DGP) review — start now, it’s the slowest step.'); r.forms.push(PROC_FORMS.dgp); r.docs.push('License term & user count'); }
+    if (type === 'software' || type === 'computer') r.gates.push('IT purchase — may need OVPIT / CIO approval.');
+    if (type === 'medical') r.steps.push('Medical/clinical: complete the MMCAP Infuse membership first (Christopher.J.Amandi@hawaii.gov).');
+    if (fund === 'uh' && amount >= 2500) { r.gates.push('Vendor must be Hawaiʻi Compliance Express (HCE) compliant ($2,500+).'); if (input.vendor === 'new') r.forms.push(PROC_FORMS.hce); }
+
+    if (fund === 'rcuh') {
+      r.system = 'RCUH Financial Portal'; r.forms.push(PROC_FORMS.rcuhChecklist);
+      if (amount <= 3500) r.method = 'No quotes required — reasonable / most-advantageous price.';
+      else if (amount < 25000) { r.method = '3+ verbal quotes (put the lowest in writing).'; r.forms.push(PROC_FORMS.rcuhRFQ); }
+      else { r.method = '3+ written quotes (formal RFQ / RFP for larger or complex buys).'; r.forms.push(PROC_FORMS.rcuhRFQ); }
+      r.approver = amount < 25000 ? 'Designated University Official (DUO) — PI / fiscal authority'
+        : amount < 100000 ? 'RCUH Financial Services Manager' : 'RCUH Executive Director';
+      r.routeTo = `Your RCUH fiscal administrator → ${r.approver}, via the RCUH Financial Portal.`;
+      if (type === 'services') r.forms.push(PROC_FORMS.rcuhServices);
+    } else if (type === 'construction') {
+      if (amount < 25000) { r.method = 'Small purchase (department).'; r.system = 'SuperQuotes'; r.approver = 'Dept / Campus'; r.routeTo = 'Your department fiscal office.'; }
+      else if (amount < 250000) { r.method = 'Small purchase via SuperQuotes, processed by FBO.'; r.system = 'SuperQuotes'; r.approver = 'Facilities Business Office (FBO)'; r.routeTo = 'Facilities Business Office (FBO).'; }
+      else { r.method = 'Formal solicitation (CSB or CSP)' + (amount >= 500000 ? ' — pre-bid conference required.' : '.'); r.system = 'HIePRO'; r.approver = 'FBO / OPM'; r.routeTo = 'OPM / FBO — opm@hawaii.edu.'; }
+    } else {
+      if (amount < 2500) { r.method = 'Direct / informal purchase — P-Card OK at a reasonable price.'; r.system = 'P-Card / KFS'; r.approver = 'Dept / Campus'; r.routeTo = 'Your department (P-Card, or a KFS requisition).'; }
+      else if (amount < 5000) { r.method = 'Informal solicitation — get about 2 quotes.'; r.system = 'KFS'; r.approver = 'Dept / Campus'; r.routeTo = 'Your department fiscal office (KFS).'; }
+      else if (amount < 25000) { r.method = 'Small purchase via SuperQuotes.'; r.system = 'SuperQuotes'; r.approver = 'Dept / Campus (delegated authority)'; r.routeTo = 'Your department (SuperQuotes). Support: (808) 956-5934.'; }
+      else if (amount < 100000) { r.method = 'Small purchase via SuperQuotes, processed through OPM.'; r.system = 'SuperQuotes → OPM'; r.approver = 'Office of Procurement Management (OPM)'; r.routeTo = 'UH OPM — opm@hawaii.edu.'; }
+      else { r.method = 'Formal solicitation — Competitive Sealed Bidding (CSB) or Proposals (CSP).'; r.system = 'HIePRO'; r.approver = 'Office of Procurement Management (OPM)'; r.routeTo = 'UH OPM — opm@hawaii.edu.'; }
     }
-    return { amount, type, vendor, quotes, contract, sole, urgent, title, body, level, docs, steps, notes: procValue('procNotes') };
+
+    if (input.sole) { r.forms.push(fund === 'rcuh' ? PROC_FORMS.soleRCUH : PROC_FORMS.soleUH); r.docs.push('Sole-source justification'); r.steps.push('Only one vendor: write and attach the sole-source justification.'); }
+    if (input.contractHeld && !r.coop) r.steps.push('Reference your existing contract / price list in the requisition.');
+    if (quotes > 0) r.docs.push(`${quotes} quote${quotes === 1 ? '' : 's'} attached`);
+    if (input.urgent) r.steps.push('Urgent: state the deadline and the consequence of delay in the notes.');
+    r.steps.push('Never split a purchase to dodge a threshold · Net 30 payment · keep quotes & approvals on file.');
+
+    r.title = r.method;
+    r.body = [r.system, r.approver].filter(Boolean).join(' · ');
+    r.level = (r.gates.length || (fund === 'uh' && amount >= 25000 && quotes < 3 && !input.sole)) ? 'warn' : 'ok';
+    return r;
+  }
+  // Read the form controls and run the engine.
+  function procurementSummary() {
+    const r = procDecide({
+      fund: procValue('procFund'), type: procValue('procType'), amount: parseFloat(procValue('procAmount')),
+      vendor: procValue('procVendor'), quotes: parseInt(procValue('procQuotes') || '0', 10),
+      contractHeld: procChecked('procContract'), sole: procChecked('procSole'), urgent: procChecked('procUrgent'),
+    });
+    r.notes = procValue('procNotes');
+    return r;
+  }
+  function procDedupForms(forms) {
+    const seen = new Set();
+    return forms.filter(f => f && !seen.has(f.url) && seen.add(f.url));
   }
   function renderProcurement() {
     const s = procurementSummary();
     const route = $('procRoute');
     route.className = `proc-route${s.level ? ' ' + s.level : ''}`;
-    route.innerHTML = `<b>${escapeHtml(s.title)}</b><span>${escapeHtml(s.body)}</span>`;
+    route.innerHTML = `<b>${escapeHtml(s.title)}</b>` +
+      (s.body ? `<span>${escapeHtml(s.body)}</span>` : `<span class="hint">Enter the request details to see the path.</span>`);
+    $('procRouteTo').innerHTML = s.routeTo
+      ? `<b>Send it to</b><p>${escapeHtml(s.routeTo)}</p>` : '';
+    $('procCoop').innerHTML = s.coop
+      ? `<b>Buy on contract</b><p><a href="${escapeAttr(s.coop.url)}" target="_blank" rel="noopener">${escapeHtml(s.coop.ref)}</a> — ${escapeHtml(s.coop.name)}</p>` : '';
+    $('procGates').innerHTML = s.gates.length
+      ? `<b>Approval gates — start early</b><ul class="proc-list">${s.gates.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>` : '';
+    const forms = procDedupForms(s.forms);
+    $('procForms').innerHTML = forms.length
+      ? `<b>Forms &amp; links</b><ul class="proc-list proc-links">${forms.map(f => `<li><a href="${escapeAttr(f.url)}" target="_blank" rel="noopener">${escapeHtml(f.name)}</a></li>`).join('')}</ul>` : '';
     $('procDocs').innerHTML = s.docs.map(d => `<li>${escapeHtml(d)}</li>`).join('');
     $('procSteps').innerHTML = s.steps.map(d => `<li>${escapeHtml(d)}</li>`).join('');
   }
   function procurementText() {
     const s = procurementSummary();
     const amount = Number.isFinite(s.amount) ? `$${s.amount.toFixed(2)}` : 'Not entered';
-    return [
-      'Procurement Wizard Summary',
-      `Recommended next step: ${s.title}`,
+    const forms = procDedupForms(s.forms);
+    const lines = [
+      'PROCUREMENT PACKET',
+      `Method: ${s.title}`,
       `Estimated total: ${amount}`,
+      `Funding source: ${$('procFund').selectedOptions[0].text}`,
       `Purchase type: ${$('procType').selectedOptions[0].text}`,
       `Vendor status: ${$('procVendor').selectedOptions[0].text}`,
       `Quotes in hand: ${$('procQuotes').selectedOptions[0].text}`,
       `Special conditions: ${[s.contract && 'existing agreement', s.sole && 'sole source', s.urgent && 'urgent'].filter(Boolean).join(', ') || 'none'}`,
-      '',
-      'Documents:',
-      ...s.docs.map(d => `- ${d}`),
-      '',
-      'Notes:',
-      s.notes || '(none)',
-    ].join('\n');
+    ];
+    if (s.system) lines.push(`System: ${s.system}`);
+    if (s.approver) lines.push(`Approver: ${s.approver}`);
+    if (s.routeTo) lines.push(`Send it to: ${s.routeTo}`);
+    if (s.coop) lines.push(`Buy on contract: ${s.coop.ref} — ${s.coop.name} (${s.coop.url})`);
+    if (s.gates.length) lines.push('', 'Approval gates:', ...s.gates.map(g => `- ${g}`));
+    if (forms.length) lines.push('', 'Forms & links:', ...forms.map(f => `- ${f.name}: ${f.url}`));
+    lines.push('', 'Documents to attach:', ...s.docs.map(d => `- ${d}`));
+    if (s.steps.length) lines.push('', 'Submission notes:', ...s.steps.map(d => `- ${d}`));
+    lines.push('', 'Notes:', s.notes || '(none)');
+    return lines.join('\n');
   }
   function initProcurement() {
-    ['procAmount', 'procType', 'procVendor', 'procQuotes', 'procContract', 'procSole', 'procUrgent', 'procNotes']
+    ['procFund', 'procAmount', 'procType', 'procVendor', 'procQuotes', 'procContract', 'procSole', 'procUrgent', 'procNotes']
       .forEach(id => $(id).addEventListener('input', renderProcurement));
     $('procCopy').onclick = async () => {
       const text = procurementText();
@@ -3091,7 +3159,7 @@
       }
     };
     $('procReset').onclick = () => {
-      $('procAmount').value = ''; $('procType').value = 'supplies'; $('procVendor').value = 'uh'; $('procQuotes').value = '0';
+      $('procFund').value = 'uh'; $('procAmount').value = ''; $('procType').value = 'supplies'; $('procVendor').value = 'uh'; $('procQuotes').value = '0';
       ['procContract', 'procSole', 'procUrgent'].forEach(id => { $(id).checked = false; });
       $('procNotes').value = ''; $('procMsg').textContent = '';
       renderProcurement();

@@ -25,7 +25,7 @@ assert.ok(XLSX && XLSX.utils, 'SheetJS failed to load');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const m = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/i);
 assert.ok(m, 'could not locate the app <script> block');
-const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, solve, defaultWeights, makeExample, resultSheets, TEMPLATE, SCHEMA, SHEET_ORDER };';
+const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, solve, defaultWeights, makeExample, resultSheets, procDecide, TEMPLATE, SCHEMA, SHEET_ORDER };';
 
 // 3. Minimal stubs for the DOM/browser globals referenced at load time.
 const stubEl = () => new Proxy({}, {
@@ -283,5 +283,44 @@ assert.equal(mrow.ScheduleTag, 'ImiGA', '"Schedule" → ScheduleTag');
 assert.equal(mrow.Cohort, '2028', '"Class Year" → Cohort');
 assert.equal(app.parsePasted('Foo\tBar\n1\t2').match, null, 'unrecognized headers → no confident match');
 console.log('✓ imperfect pastes canonicalize headers/values and drop blank rows');
+
+// --- Test 17: procurement decision engine (fund + category + amount thresholds) ---
+const formUrls = (r) => r.forms.map(f => f.url);
+// UH small buy → P-Card, no HCE gate under $2,500
+let p = app.procDecide({ fund: 'uh', type: 'supplies', amount: 800, vendor: 'uh', quotes: 0 });
+assert.match(p.method, /P-Card|informal/i, 'UH <$2,500 is a P-Card / informal buy');
+assert.ok(!p.gates.some(g => /HCE/.test(g)), 'no HCE gate below $2,500');
+// UH mid buy → SuperQuotes via OPM at $25k–$100k, HCE gate applies
+p = app.procDecide({ fund: 'uh', type: 'supplies', amount: 40000, vendor: 'new', quotes: 0 });
+assert.match(p.approver, /OPM/, 'UH $25k–$100k routes through OPM');
+assert.ok(p.gates.some(g => /HCE/.test(g)), 'HCE gate at $2,500+');
+// UH large buy → formal CSB/CSP
+p = app.procDecide({ fund: 'uh', type: 'supplies', amount: 250000, vendor: 'uh', quotes: 3 });
+assert.match(p.method, /Formal|CSB|CSP/i, 'UH $100k+ is a formal solicitation');
+// UH construction has its own thresholds (FBO between $25k and $250k)
+p = app.procDecide({ fund: 'uh', type: 'construction', amount: 120000, vendor: 'uh', quotes: 0 });
+assert.match(p.approver, /FBO|Facilities/, 'UH construction $25k–$250k routes to FBO');
+// RCUH thresholds + portal + checklist form
+p = app.procDecide({ fund: 'rcuh', type: 'services', amount: 2000, vendor: 'uh', quotes: 0 });
+assert.match(p.method, /No quotes/i, 'RCUH <=$3,500 needs no quotes');
+assert.equal(p.system, 'RCUH Financial Portal', 'RCUH routes through the Financial Portal');
+assert.ok(formUrls(p).some(u => /attachment-28/.test(u)), 'RCUH packet includes the procurement checklist');
+p = app.procDecide({ fund: 'rcuh', type: 'supplies', amount: 50000, vendor: 'uh', quotes: 0 });
+assert.match(p.approver, /Financial Services Manager/, 'RCUH $25k–$100k → FSM');
+// Sole source attaches the fund-appropriate justification form
+p = app.procDecide({ fund: 'uh', type: 'supplies', amount: 9000, vendor: 'uh', quotes: 0, sole: true });
+assert.ok(formUrls(p).some(u => /SPO-001/.test(u)), 'UH sole source attaches SPO-001');
+p = app.procDecide({ fund: 'rcuh', type: 'supplies', amount: 9000, vendor: 'uh', quotes: 0, sole: true });
+assert.ok(formUrls(p).some(u => /attachment-2-sole-source/.test(u)), 'RCUH sole source attaches Attachment 02');
+// Cooperative contract + DGP gate by category
+p = app.procDecide({ fund: 'uh', type: 'computer', amount: 5000, vendor: 'uh', quotes: 0 });
+assert.ok(p.coop && /NASPO 24-03/.test(p.coop.ref), 'computer purchases point at the NASPO computer contract');
+p = app.procDecide({ fund: 'uh', type: 'software', amount: 5000, vendor: 'uh', quotes: 0 });
+assert.ok(p.gates.some(g => /Data Governance|DGP/.test(g)), 'software triggers a DGP data-governance gate');
+assert.ok(formUrls(p).some(u => /infosec/.test(u)), 'software packet links the DGP request');
+// No amount → neutral prompt, no method
+p = app.procDecide({ fund: 'uh', type: 'supplies', amount: NaN, vendor: 'uh', quotes: 0 });
+assert.equal(p.method, '', 'no amount yields no method');
+console.log('✓ procurement engine: UH/RCUH thresholds, routing, forms, coop contracts, gates');
 
 console.log('\nALL TESTS PASSED');
