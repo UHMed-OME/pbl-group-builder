@@ -212,6 +212,17 @@
     .wiz-btn.linkish { border: 0; background: transparent; color: var(--muted); font-weight: 500; text-decoration: underline; padding: 0.6rem 0.5rem; }
     .wiz-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     @media (max-width: 560px) { .wiz-cardwrap { padding: 1.1rem; } .wiz-twoup { grid-template-columns: 1fr; } .wp-txt { display: none; } }
+    /* Quote-request step */
+    .qr-banner { padding: 0.7rem 0.9rem; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); font-size: 0.92rem; margin-bottom: 1.1rem; }
+    .qr-banner.warn { border-color: var(--warn); background: var(--warn-bg); }
+    .qr-banner.ok { border-color: var(--accent); background: var(--accent-bg); }
+    .qr-make { border: 1px solid var(--line); border-radius: var(--radius-card); padding: 1rem; margin-bottom: 1.1rem; }
+    .qr-make h3, .qr-have h3 { margin: 0 0 0.3rem; font-size: 0.95rem; color: var(--brand-dark); }
+    .qr-to { margin: 0.7rem 0 0.4rem; font-size: 0.9rem; }
+    .qr-preview { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .qr-preview-h { background: var(--surface); border-bottom: 1px solid var(--line); padding: 0.35rem 0.7rem; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+    .qr-preview pre { margin: 0; padding: 0.8rem; font: 0.84rem/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 280px; overflow: auto; color: var(--fg); }
+    .proc-contacts a { color: var(--brand-dark); }
     @media (max-width: 900px) { .proc-grid { grid-template-columns: 1fr; } }
     /* Transport lives on the right of the Roster/Groups tab row. */
     .apptabs .tool-actions { margin-left: auto; }
@@ -788,7 +799,8 @@
             <li data-step="1"><span class="wp-num">2</span><span class="wp-txt">Funding</span></li>
             <li data-step="2"><span class="wp-num">3</span><span class="wp-txt">Details</span></li>
             <li data-step="3"><span class="wp-num">4</span><span class="wp-txt">Your plan</span></li>
-            <li data-step="4"><span class="wp-num">5</span><span class="wp-txt">Packet</span></li>
+            <li data-step="4"><span class="wp-num">5</span><span class="wp-txt">Quotes</span></li>
+            <li data-step="5"><span class="wp-num">6</span><span class="wp-txt">Packet</span></li>
           </ol>
 
           <div class="wiz-cardwrap">
@@ -909,8 +921,41 @@
               </div>
             </section>
 
-            <!-- Step 5 — packet -->
+            <!-- Step 5 — quotes / request creator -->
             <section class="wiz-step" data-step="4" hidden>
+              <h2 class="wiz-q">Quotes</h2>
+              <p class="wiz-sub">Most purchases need competitive quotes. If you don't have them yet, create the request here first.</p>
+              <div id="qrBanner" class="qr-banner"></div>
+              <div class="qr-make">
+                <h3 class="wiz-flabel">Create a quote request</h3>
+                <p class="hint">One identical request goes to every vendor at the same time (BCC). Fiscal requires simultaneous contact with identical specs.</p>
+                <div class="proc-pgrid">
+                  <label class="proc-field">What you're buying (short) <input id="qrItem" type="text"></label>
+                  <label class="proc-field">Needed by <input id="qrDeadline" type="date"></label>
+                  <label class="proc-field">Your name <input id="qrName" type="text"></label>
+                  <label class="proc-field">Department / program <input id="qrDept" type="text"></label>
+                </div>
+                <label class="proc-field">Specifications / quantities
+                  <textarea id="qrSpecs" placeholder="List items, quantities, models, or paste a spec sheet"></textarea>
+                </label>
+                <div class="qr-to"><b>Send to (identical request, BCC all at once):</b> <span id="qrRecips" class="muted">—</span></div>
+                <div class="qr-preview"><div class="qr-preview-h">Email preview</div><pre id="qrPreview"></pre></div>
+                <div class="proc-actions">
+                  <button id="qrCopy">Copy email</button>
+                  <button id="qrMail" class="primary">✉ Open in email app</button>
+                </div>
+                <p id="qrMsg" class="hint" aria-live="polite"></p>
+              </div>
+              <div class="qr-have">
+                <h3 class="wiz-flabel">Already have quotes back?</h3>
+                <label class="proc-field">Enter them for your packet's price summary <span class="muted">(one per line: Vendor, Amount, Date)</span>
+                  <textarea id="pkQuotes" placeholder="Acme Co, 4200.00, 2026-06-01"></textarea>
+                </label>
+              </div>
+            </section>
+
+            <!-- Step 6 — packet -->
+            <section class="wiz-step" data-step="5" hidden>
               <h2 class="wiz-q">Let's build your packet</h2>
               <p class="wiz-sub">Fill these in to generate a ready-to-submit PDF — a cover sheet plus the forms your request needs. Everything stays on your machine.</p>
               <div class="proc-pgrid">
@@ -933,13 +978,11 @@
                   <textarea id="pkSolePrice"></textarea>
                 </label>
               </div>
-              <label class="proc-field">Quotes gathered <span class="muted">(one per line: Vendor, Amount, Date)</span>
-                <textarea id="pkQuotes" placeholder="Acme Co, 4200.00, 2026-06-01"></textarea>
-              </label>
               <fieldset class="proc-docpick">
                 <legend>Include in packet</legend>
                 <label><input type="checkbox" id="pkDocCover" checked> Request cover sheet</label>
                 <label><input type="checkbox" id="pkDocSole"> Sole source justification</label>
+                <label><input type="checkbox" id="pkDocQuoteReq"> Quote request (to send vendors)</label>
                 <label><input type="checkbox" id="pkDocQuotes"> Quote / price summary</label>
                 <label><input type="checkbox" id="pkDocChecklist"> RCUH procurement checklist</label>
               </fieldset>
@@ -3213,47 +3256,61 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     computer: { ref: 'NASPO 24-03', name: 'Computer Equipment (desktops / laptops / servers)', url: 'https://www.naspovaluepoint.org/',
       quoteVia: 'Email a manufacturer rep or a Hawaiʻi reseller and cite contract 24-03 + the vendor’s NASPO Master Agreement #. No separate HCE check when buying on-contract.',
       contacts: [
-        { name: 'Dell — Heather Morgado (HI AE)', email: 'Heather.Morgado@dell.com', phone: '(808) 352-7954' },
-        { name: 'HP — Alicia Hooper', email: 'Alicia.hooper@hp.com', phone: '(505) 415-7694' },
-        { name: 'Apple — Education / Gov SSO', email: 'EducationSupport@apple.com', phone: '1-800-800-2775' },
-        { name: 'Lenovo — Jackson Tsao', email: 'jtsao@lenovo.com', phone: '(808) 286-4175' },
-        { name: 'CDW-G reseller — HI team', email: 'hawaii@cdwg.com', phone: '(800) 808-4239' },
-        { name: 'SHI reseller — Team Hawaii', email: 'TeamHawaii@SHI.com', phone: '(908) 432-2254' },
-        { name: 'SPO contract POC — Matthew Chow', email: 'matthew.m.chow@hawaii.gov', phone: '(808) 586-0577' },
+        { name: 'Dell — Heather Morgado (HI AE)', email: 'Heather.Morgado@dell.com', phone: '(808) 352-7954', site: 'https://www.dell.com/en-us/dt/dellnaspovp/program-and-contracts/index.htm' },
+        { name: 'HP — Alicia Hooper', email: 'Alicia.hooper@hp.com', phone: '(505) 415-7694', site: 'https://www.hp.com/buy/naspovppc5' },
+        { name: 'Apple — Education / Gov SSO', email: 'EducationSupport@apple.com', phone: '1-800-800-2775', site: 'https://ecommerce.apple.com' },
+        { name: 'Lenovo — Jackson Tsao', email: 'jtsao@lenovo.com', phone: '(808) 286-4175', site: 'https://techtoday.lenovo.com/us/en/naspo' },
+        { name: 'CDW-G reseller — HI team', email: 'hawaii@cdwg.com', phone: '(800) 808-4239', site: '' },
+        { name: 'SHI reseller — Team Hawaii', email: 'TeamHawaii@SHI.com', phone: '(908) 432-2254', site: '' },
+        { name: 'SPO contract POC — Matthew Chow', email: 'matthew.m.chow@hawaii.gov', phone: '(808) 586-0577', site: '' },
       ] },
     software: { ref: 'SPO 17-18', name: 'NASPO Cloud Solutions (SaaS / IaaS / PaaS)', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/',
       quoteVia: 'Most SaaS is bought through an aggregator (Carahsoft / SHI / Insight). Cite SPO 17-18 — and start the DGP data-governance review in parallel.',
       contacts: [
-        { name: 'Carahsoft — Mariah Edwards', email: 'Mariah.Edwards@Carahsoft.com', phone: '(703) 889-9734' },
-        { name: 'SHI — education desk', email: 'HawaiiEDU@shi.com', phone: '' },
-        { name: 'Insight Public Sector', email: 'TeamHawaii@insight.com', phone: '' },
+        { name: 'Carahsoft — Mariah Edwards', email: 'Mariah.Edwards@Carahsoft.com', phone: '(703) 889-9734', site: '' },
+        { name: 'SHI — education desk', email: 'HawaiiEDU@shi.com', phone: '', site: '' },
+        { name: 'Insight Public Sector', email: 'TeamHawaii@insight.com', phone: '', site: '' },
       ] },
     lab: { ref: 'SPO 24-13', name: 'Lab Equipment & Supplies', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/',
       quoteVia: 'Request a contract-priced quote citing SPO 24-13.',
       contacts: [
-        { name: 'Fisher Scientific — Blaine Hedani', email: '', phone: '(808) 371-3854' },
-        { name: 'VWR / Avantor', email: '', phone: '(808) 420-7374' },
-        { name: 'Nikon / Pacific Star', email: '', phone: '' },
+        { name: 'Fisher Scientific — Blaine Hedani (HI rep)', email: 'blaine.hedani@thermofisher.com', phone: '(808) 371-3854', site: 'https://www.fishersci.com' },
+        { name: 'VWR / Avantor — Andrew Burger (HI rep)', email: 'andrew.burger@avantorsciences.com', phone: '(808) 420-7374', site: 'https://us.vwr.com' },
+        { name: 'Nikon — Jacquelyn Perry', email: 'Jacquelyn.perry@nikon.com', phone: '', site: 'https://www.microscope.healthcare.nikon.com' },
+        { name: 'Pacific Star Corp.', email: 'Naspo@pfstar.com', phone: '', site: '' },
       ] },
     medical: { ref: 'SPO 24-11', name: 'MMCAP Medical Products', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/',
       quoteVia: 'Requires an MMCAP Infuse membership application via SPO first; then order from Henry Schein at member pricing.',
       contacts: [
-        { name: 'Henry Schein (via MMCAP)', email: '', phone: '' },
-        { name: 'MMCAP membership — Christopher Amandi', email: 'Christopher.J.Amandi@hawaii.gov', phone: '' },
+        { name: 'Henry Schein (via MMCAP)', email: '', phone: '', site: 'https://www.henryschein.com' },
+        { name: 'MMCAP membership — Christopher Amandi (SPO)', email: 'Christopher.J.Amandi@hawaii.gov', phone: '', site: '' },
+        { name: 'MMCAP AE — Kim Hankins', email: '', phone: '(503) 999-5013', site: '' },
       ] },
     office: { ref: 'SPO 25-12 / NASPO 23-15', name: 'Office Supplies / Furniture', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/',
       quoteVia: 'Order supplies at contract price; for furniture (23-15) get a dealer quote citing the contract.',
       contacts: [
-        { name: 'Office Depot / ODP', email: '', phone: '' },
-        { name: 'Fisher Hawaii (local)', email: '', phone: '(808) 687-5214' },
-        { name: 'Furniture dealers — CEI Hawaii, Interior Showplace', email: '', phone: '' },
+        { name: 'Office Depot / ODP — HI team', email: 'Hawaii.Support@odpbusiness.com', phone: '', site: 'https://business.officedepot.com' },
+        { name: 'Fisher Hawaii — Ric Gonzalez', email: 'RicG@fisherhawaii.net', phone: '(808) 687-5214', site: 'https://fisherhawaii.net' },
+        { name: 'Furniture — CEI Hawaii', email: 'myasui@ceihawaii.com', phone: '', site: '' },
+        { name: 'Furniture — Interior Showplace', email: 'kim@interiorshowplace.com', phone: '', site: '' },
       ] },
     av: { ref: 'SPO 26-14', name: 'AV Equipment & Services', url: 'https://spo.hawaii.gov/for-vendors/contract-awards/price-vendor-lists/',
-      quoteVia: 'Request a quote citing SPO 26-14.',
+      quoteVia: 'Request a quote citing SPO 26-14 (B&H is the sole Hawaiʻi awardee).',
       contacts: [
-        { name: 'B&H Photo Video — Jon Bernstein', email: 'jbernste@bhphoto.com', phone: '' },
+        { name: 'B&H Photo Video — Jon Bernstein', email: 'jbernste@bhphoto.com', phone: '(212) 239-7500', site: 'https://www.bhphotovideo.com' },
       ] },
   };
+  // UH/State procurement systems → where to do the work online.
+  const PROC_SYSTEMS = {
+    'SuperQuotes': 'https://www.hawaii.edu/procurement/bidding-opportunities/small-purchases/',
+    'HIePRO': 'https://hiepro.ehawaii.gov',
+    'RCUH Financial Portal': 'https://www.rcuh.com/',
+  };
+  function procSystemLink(system) {
+    if (!system) return null;
+    for (const key of Object.keys(PROC_SYSTEMS)) if (system.indexOf(key) !== -1) return { label: key, url: PROC_SYSTEMS[key] };
+    return null;
+  }
 
   // Pure decision engine: fund + category + amount → method, routing, forms, contract, checklist.
   function procDecide(input) {
@@ -3298,9 +3355,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       else { r.method = 'Formal solicitation — Competitive Sealed Bidding (CSB) or Proposals (CSP).'; r.system = 'HIePRO'; r.approver = 'Office of Procurement Management (OPM)'; r.routeTo = 'UH OPM — opm@hawaii.edu.'; }
     }
 
+    // Are competitive quotes required for this path, and does the user have them yet?
+    r.haveQuotes = quotes > 0;
+    r.needQuotes = input.sole ? false
+      : fund === 'rcuh' ? amount > 3500
+      : type === 'construction' ? amount >= 25000
+      : amount >= 2500;
+
     if (input.sole) { r.forms.push(fund === 'rcuh' ? PROC_FORMS.soleRCUH : PROC_FORMS.soleUH); r.docs.push('Sole-source justification'); r.steps.push('Only one vendor: write and attach the sole-source justification.'); }
     if (input.contractHeld && !r.coop) r.steps.push('Reference your existing contract / price list in the requisition.');
-    if (quotes > 0) r.docs.push(`${quotes} quote${quotes === 1 ? '' : 's'} attached`);
+    if (r.needQuotes && r.haveQuotes) r.docs.push(`${quotes} quote${quotes === 1 ? '' : 's'} attached`);
+    else if (r.needQuotes) { r.docs.push('Competitive quotes (you still need these)'); r.steps.push('You don’t have quotes yet — use the Request quotes step to send vendors a quote request first.'); }
     if (input.urgent) r.steps.push('Urgent: state the deadline and the consequence of delay in the notes.');
     r.steps.push('Never split a purchase to dodge a threshold · Net 30 payment · keep quotes & approvals on file.');
 
@@ -3348,23 +3413,44 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // Lay a list of documents out into page content streams (each doc starts fresh).
   function pdfLayout(docs) {
     const PW = 612, PH = 792, M = 54, maxW = PW - 2 * M, bottom = M;
-    const pages = []; let ops = [], y = PH - M;
-    const flush = () => { pages.push(ops.join('\n')); ops = []; y = PH - M; };
+    const brand = [0.008, 0.278, 0.192], accent = [0.000, 0.604, 0.267], light = [0.942, 0.968, 0.954], rule = [0.830, 0.878, 0.855], text = [0.106, 0.165, 0.137], muted = [0.300, 0.352, 0.329], white = [1, 1, 1];
+    const pages = []; let ops = [], y = PH - M, pageNo = 0;
+    const col = c => c.map(n => n.toFixed(3)).join(' ');
+    const fillRect = (x, yy, w, h, c) => ops.push(`${col(c)} rg ${x.toFixed(1)} ${yy.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f`);
+    const strokeRect = (x, yy, w, h, c, lw = 0.6) => ops.push(`${col(c)} RG ${lw.toFixed(1)} w ${x.toFixed(1)} ${yy.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re S`);
+    const put = (s, x, yy, size, bold, c = text) => ops.push(`${col(c)} rg BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(1)} ${yy.toFixed(1)} Tm (${pdfEsc(s)}) Tj ET`);
+    const line = (x1, yy, x2, c = rule, lw = 0.6) => ops.push(`${col(c)} RG ${lw.toFixed(1)} w ${x1.toFixed(1)} ${yy.toFixed(1)} m ${x2.toFixed(1)} ${yy.toFixed(1)} l S`);
+    const startPage = () => {
+      pageNo += 1;
+      fillRect(0, PH - 26, PW, 26, brand);
+      fillRect(0, PH - 30, PW, 4, accent);
+      put('John A. Burns School of Medicine', M, PH - 17, 9.5, true, white);
+      put('Procurement packet', PW - M - 95, PH - 17, 9.5, false, white);
+      y = PH - 58;
+    };
+    const finishPage = () => {
+      line(M, 40, PW - M, rule, 0.5);
+      put("Maika'i Loa: Attain Lasting Optimal Health for All (ALOHA)", M, 27, 8.5, true, muted);
+      put(`Page ${pageNo}`, PW - M - 32, 27, 8.5, false, muted);
+      pages.push(ops.join('\n'));
+      ops = [];
+      startPage();
+    };
+    startPage();
+    const flush = () => finishPage();
     const need = h => { if (y - h < bottom) flush(); };
-    const put = (s, x, yy, size, bold) => ops.push(`BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(1)} ${yy.toFixed(1)} Tm (${pdfEsc(s)}) Tj ET`);
-    const line = (x1, yy, x2) => ops.push(`${x1.toFixed(1)} ${yy.toFixed(1)} m ${x2.toFixed(1)} ${yy.toFixed(1)} l 0.6 w 0.6 0.6 0.6 RG S`);
     docs.forEach((doc, di) => {
       if (di > 0) flush();
       for (const b of doc) {
-        if (b.t === 'h') { need(30); put(b.text, M, y - 16, 16, true); y -= 22; line(M, y, PW - M); y -= 14; }
-        else if (b.t === 'sub') { need(22); y -= 4; put(b.text, M, y - 11, 12, true); y -= 18; }
-        else if (b.t === 'kv') { const vl = pdfWrap(b.v || '', 11, maxW - 150) || ['']; const n = Math.max(1, vl.length); need(14 * n); put(b.k, M, y - 11, 11, true); vl.forEach((ln, i) => put(ln, M + 150, y - 11 - i * 13, 11, false)); y -= 14 * n; }
+        if (b.t === 'h') { need(46); put(b.text, M, y - 18, 18, true, brand); y -= 26; line(M, y, PW - M, accent, 1.1); y -= 16; }
+        else if (b.t === 'sub') { need(24); y -= 4; put(b.text, M, y - 10, 10.5, true, accent); y -= 18; }
+        else if (b.t === 'kv') { const vl = pdfWrap(b.v || '', 11, maxW - 158) || ['']; const n = Math.max(1, vl.length); need(16 * n); put(b.k, M, y - 11, 10.5, true, brand); vl.forEach((ln, i) => put(ln, M + 158, y - 11 - i * 13, 11, false)); y -= 16 * n; }
         else if (b.t === 'para') { for (const ln of pdfWrap(b.text || '-', 11, maxW)) { need(14); put(ln, M, y - 11, 11, false); y -= 14; } }
-        else if (b.t === 'check') { const wl = pdfWrap(b.text, 11, maxW - 24); const n = Math.max(1, wl.length); need(14 * n + 2); put(`[${b.checked ? 'X' : ' '}]`, M, y - 11, 11, true); wl.forEach((ln, i) => put(ln, M + 24, y - 11 - i * 13, 11, false)); y -= 14 * n + 2; }
-        else if (b.t === 'row') { const w = [maxW * 0.5, maxW * 0.28]; const xs = [M, M + w[0], M + w[0] + w[1]]; need(15); b.cols.forEach((c, i) => put(String(c == null ? '' : c), xs[i], y - 11, 10, !!b.head)); y -= 13; line(M, y + 1, PW - M); y -= 4; }
-        else if (b.t === 'rule') { need(8); line(M, y, PW - M); y -= 10; }
+        else if (b.t === 'check') { const wl = pdfWrap(b.text, 11, maxW - 26); const n = Math.max(1, wl.length); need(14 * n + 2); strokeRect(M, y - 13, 9, 9, accent, 0.8); if (b.checked) put('X', M + 1.5, y - 12, 8.5, true, brand); wl.forEach((ln, i) => put(ln, M + 26, y - 11 - i * 13, 11, false)); y -= 14 * n + 2; }
+        else if (b.t === 'row') { const w = [maxW * 0.5, maxW * 0.28]; const xs = [M + 8, M + w[0] + 8, M + w[0] + w[1] + 8]; need(18); if (b.head) fillRect(M, y - 16, maxW, 18, light); b.cols.forEach((c, i) => put(String(c == null ? '' : c), xs[i], y - 11, 10, !!b.head, b.head ? brand : text)); y -= 14; line(M, y + 1, PW - M, rule); y -= 4; }
+        else if (b.t === 'rule') { need(8); line(M, y, PW - M, rule); y -= 12; }
         else if (b.t === 'gap') { need(b.h || 10); y -= (b.h || 10); }
-        else if (b.t === 'sig') { need(34); y -= 18; put('Signature: ______________________________      Date: ________________', M, y - 11, 11, false); y -= 16; }
+        else if (b.t === 'sig') { need(38); y -= 18; line(M + 58, y - 2, M + 282, rule, 0.8); line(M + 340, y - 2, M + 470, rule, 0.8); put('Signature', M, y - 5, 10, true, brand); put('Date', M + 306, y - 5, 10, true, brand); y -= 18; }
       }
     });
     flush();
@@ -3418,7 +3504,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         b.push({ t: 'kv', k: 'Buy on contract', v: `${d.coop.ref} - ${d.coop.name}` });
         if (d.coop.contacts && d.coop.contacts.length) {
           b.push({ t: 'sub', text: 'Who to contact for quotes' });
-          d.coop.contacts.forEach(c => b.push({ t: 'para', text: `- ${c.name}${c.email ? '  ' + c.email : ''}${c.phone ? '  ' + c.phone : ''}` }));
+          d.coop.contacts.forEach(c => b.push({ t: 'para', text: `- ${c.name}${c.email ? '  ' + c.email : ''}${c.phone ? '  ' + c.phone : ''}${c.site ? '  ' + c.site : ''}` }));
           if (d.coop.quoteVia) b.push({ t: 'para', text: d.coop.quoteVia });
         }
       }
@@ -3450,6 +3536,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       b.push({ t: 'gap', h: 8 }, { t: 'sig' });
       docs.push(b);
     }
+    if (f.quoteReq) {
+      const q = procQuoteEmail(d, f);
+      const b = [{ t: 'h', text: 'Request for Quote' }];
+      b.push({ t: 'kv', k: 'Send to (identical, simultaneous)', v: q.recipients.length ? q.recipients.join('; ') : '(enter vendor emails)' });
+      if (d.coop) b.push({ t: 'kv', k: 'Reference contract', v: d.coop.ref });
+      b.push({ t: 'kv', k: 'Subject', v: q.subject }, { t: 'rule' });
+      q.body.split('\n').forEach(ln => b.push({ t: 'para', text: ln || ' ' }));
+      b.push({ t: 'gap', h: 6 }, { t: 'para', text: 'Send this identical request to every vendor at the same time (BCC) so fiscal sees simultaneous contact with identical specs.' });
+      docs.push(b);
+    }
     if (f.checklist) {
       const b = [{ t: 'h', text: 'RCUH Procurement Checklist' }];
       [
@@ -3473,14 +3569,35 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const seen = new Set();
     return forms.filter(f => f && !seen.has(f.url) && seen.add(f.url));
   }
+  // One identical quote request for ALL the contract's vendors (sent simultaneously, BCC).
+  function procQuoteEmail(d, f) {
+    const recipients = d.coop ? d.coop.contacts.filter(c => c.email).map(c => c.email) : [];
+    const item = (f.item || '').trim() || '[item description]';
+    const dept = (f.dept || '').trim() || '[your department]';
+    const deadline = (f.deadline || '').trim() || '[date]';
+    const name = (f.requestor || '').trim() || '[your name]';
+    const ref = d.coop ? d.coop.ref : '';
+    const subject = `Quote Request - ${item} - ${dept}`;
+    const lines = [
+      'Dear Vendor / Sales Representative,', '',
+      `The University of Hawaiʻi (${dept}) requests a quote for the following by COB ${deadline}:`, '',
+      (f.specs || '').trim() || '[list specifications, quantities, or attach a spec sheet]', '',
+    ];
+    if (ref) lines.push(`Please reference ${ref} for applicable contract pricing.`);
+    lines.push('Please ensure the quote is valid for at least 15 business days from the date of submission.', '', 'Thank you,', name);
+    if ((f.title || '').trim()) lines.push(f.title.trim());
+    lines.push(dept, 'University of Hawaiʻi');
+    return { subject, body: lines.join('\n'), recipients };
+  }
   function renderProcurement() {
     const s = procurementSummary();
     const route = $('procRoute');
     route.className = `proc-route${s.level ? ' ' + s.level : ''}`;
     route.innerHTML = `<b>${escapeHtml(s.title)}</b>` +
       (s.body ? `<span>${escapeHtml(s.body)}</span>` : `<span class="hint">Enter the request details to see the path.</span>`);
-    $('procRouteTo').innerHTML = s.routeTo
-      ? `<b>Send it to</b><p>${escapeHtml(s.routeTo)}</p>` : '';
+    const sys = procSystemLink(s.system);
+    $('procRouteTo').innerHTML = (s.routeTo ? `<b>Send it to</b><p>${escapeHtml(s.routeTo)}</p>` : '')
+      + (sys ? `<p class="hint">Do it in <a href="${escapeAttr(sys.url)}" target="_blank" rel="noopener">${escapeHtml(sys.label)} ↗</a></p>` : '');
     $('procCoop').innerHTML = s.coop
       ? `<b>Buy on contract</b><p><a href="${escapeAttr(s.coop.url)}" target="_blank" rel="noopener">${escapeHtml(s.coop.ref)}</a> — ${escapeHtml(s.coop.name)}</p>`
         + (s.coop.contacts && s.coop.contacts.length
@@ -3489,6 +3606,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
                   const bits = [
                     c.email ? `<a href="mailto:${escapeAttr(c.email)}">${escapeHtml(c.email)}</a>` : '',
                     c.phone ? `<span class="muted">${escapeHtml(c.phone)}</span>` : '',
+                    c.site ? `<a href="${escapeAttr(c.site)}" target="_blank" rel="noopener">NASPO site ↗</a>` : '',
                   ].filter(Boolean).join(' · ');
                   return `<li>${escapeHtml(c.name)}${bits ? ' — ' + bits : ''}</li>`;
                 }).join('')
@@ -3496,9 +3614,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
               + (s.coop.quoteVia ? `<p class="hint">${escapeHtml(s.coop.quoteVia)}</p>` : '') : '')
       : '';
     // Suggest the packet documents that fit this request (the operator can still toggle).
+    // If quotes are needed but not in hand, push the quote REQUEST, not a quote summary.
     if ($('pkDocSole')) {
       $('pkDocSole').checked = s.sole;
-      $('pkDocQuotes').checked = /quote/i.test(s.method || '');
+      $('pkDocQuotes').checked = !!(s.needQuotes && s.haveQuotes);
+      if ($('pkDocQuoteReq')) $('pkDocQuoteReq').checked = !!(s.needQuotes && !s.haveQuotes);
       $('pkDocChecklist').checked = s.fund === 'rcuh';
       if ($('pkSoleWrap')) $('pkSoleWrap').hidden = !s.sole;
     }
@@ -3509,6 +3629,31 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       ? `<b>Forms &amp; links</b><ul class="proc-list proc-links">${forms.map(f => `<li><a href="${escapeAttr(f.url)}" target="_blank" rel="noopener">${escapeHtml(f.name)}</a></li>`).join('')}</ul>` : '';
     $('procDocs').innerHTML = s.docs.map(d => `<li>${escapeHtml(d)}</li>`).join('');
     $('procSteps').innerHTML = s.steps.map(d => `<li>${escapeHtml(d)}</li>`).join('');
+  }
+  // Gather the quote-request fields from the Quotes step.
+  function quoteFields() {
+    return {
+      item: procValue('qrItem'), specs: procValue('qrSpecs'), deadline: procValue('qrDeadline'),
+      requestor: procValue('qrName'), dept: procValue('qrDept'), title: '',
+    };
+  }
+  function renderQuoteStep() {
+    const s = procurementSummary();
+    const q = procQuoteEmail(s, quoteFields());
+    // Branch banner: needed-but-missing emphasizes making the request; otherwise informational.
+    const banner = $('qrBanner');
+    if (s.needQuotes && !s.haveQuotes) {
+      banner.className = 'qr-banner warn';
+      banner.innerHTML = '<b>You still need competitive quotes.</b> Send the identical request below to every vendor, then come back and build your packet once the quotes are in. (Don’t submit a price summary you don’t have yet.)';
+    } else if (s.needQuotes && s.haveQuotes) {
+      banner.className = 'qr-banner ok';
+      banner.innerHTML = '<b>You said you have quotes.</b> Enter them at the bottom for your packet’s price summary — or send a fresh request below.';
+    } else {
+      banner.className = 'qr-banner';
+      banner.innerHTML = 'No competitive quotes are required for this purchase. You can still send a quote request if you’d like one on file.';
+    }
+    $('qrRecips').textContent = q.recipients.length ? q.recipients.join(', ') : '(no contract vendors — add recipients in your email app)';
+    $('qrPreview').textContent = `To (BCC): ${q.recipients.join(', ') || '[vendor emails]'}\nSubject: ${q.subject}\n\n${q.body}`;
   }
   function procurementText() {
     const s = procurementSummary();
@@ -3531,7 +3676,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       lines.push(`Buy on contract: ${s.coop.ref} — ${s.coop.name} (${s.coop.url})`);
       if (s.coop.contacts && s.coop.contacts.length) {
         lines.push('Contact for quotes:');
-        s.coop.contacts.forEach(c => lines.push(`  - ${c.name}${c.email ? '  ' + c.email : ''}${c.phone ? '  ' + c.phone : ''}`));
+        s.coop.contacts.forEach(c => lines.push(`  - ${c.name}${c.email ? '  ' + c.email : ''}${c.phone ? '  ' + c.phone : ''}${c.site ? '  ' + c.site : ''}`));
         if (s.coop.quoteVia) lines.push(`  (${s.coop.quoteVia})`);
       }
     }
@@ -3547,12 +3692,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const today = new Date();
     const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const f = {
-      date: iso, requestor: procValue('pkRequestor'), dept: procValue('pkDept'), fundCode: procValue('pkFund'),
+      date: iso, requestor: procValue('pkRequestor') || procValue('qrName'), dept: procValue('pkDept') || procValue('qrDept'), fundCode: procValue('pkFund'),
       vendor: procValue('pkVendor'), purpose: procValue('pkPurpose'),
       typeLabel: $('procType').selectedOptions[0].text,
       soleWhy: procValue('pkSoleWhy'), soleUnique: procValue('pkSoleUnique'), solePrice: procValue('pkSolePrice'),
       quoteRows: procParseQuotes(procValue('pkQuotes')),
-      cover: procChecked('pkDocCover'), sole: procChecked('pkDocSole'), quotes: procChecked('pkDocQuotes'), checklist: procChecked('pkDocChecklist'),
+      // Quote-request fields (for the optional Request-for-Quote document).
+      item: procValue('qrItem'), specs: procValue('qrSpecs'), deadline: procValue('qrDeadline'),
+      cover: procChecked('pkDocCover'), sole: procChecked('pkDocSole'), quotes: procChecked('pkDocQuotes'),
+      quoteReq: procChecked('pkDocQuoteReq'), checklist: procChecked('pkDocChecklist'),
     };
     const docs = procPacketDocs(d, f);
     if (!docs.length) { $('pkMsg').textContent = 'Pick at least one document to include in the packet.'; return; }
@@ -3567,7 +3715,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   // ---- Wizard step navigation (TurboTax-style) -----------------------------
   let wizStep = 0;
-  const WIZ_LAST = 4;
+  const WIZ_LAST = 5;
   function wizSyncChoices() {
     document.querySelectorAll('.wiz-choices').forEach(group => {
       const sel = $(group.getAttribute('data-target'));
@@ -3587,6 +3735,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     next.hidden = wizStep === WIZ_LAST;
     next.textContent = wizStep === WIZ_LAST - 1 ? 'Build packet →' : 'Continue →';
     if (wizStep === 3) renderProcurement();   // entering the plan step: compute it
+    if (wizStep === 4) renderQuoteStep();      // entering the quotes step
+    if (wizStep === 5 && $('pkRequestor')) {   // prefill packet identity from the quote step
+      if (!$('pkRequestor').value && $('qrName').value) $('pkRequestor').value = $('qrName').value;
+      if (!$('pkDept').value && $('qrDept').value) $('pkDept').value = $('qrDept').value;
+    }
     wizSyncChoices();
   }
   function wizGo(n) { wizStep = Math.max(0, Math.min(WIZ_LAST, n)); wizRender(); }
@@ -3605,6 +3758,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     $('wizNext').onclick = () => wizGo(wizStep + 1);
     $('wizBack').onclick = () => wizGo(wizStep - 1);
+    // Live-update the quote request as its fields change.
+    ['qrItem', 'qrSpecs', 'qrDeadline', 'qrName', 'qrDept'].forEach(id => { if ($(id)) $(id).addEventListener('input', renderQuoteStep); });
+    if ($('qrCopy')) $('qrCopy').onclick = async () => {
+      const q = procQuoteEmail(procurementSummary(), quoteFields());
+      const text = `Subject: ${q.subject}\n\n${q.body}`;
+      try { if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text); $('qrMsg').textContent = 'Quote request copied — paste into one email and BCC all the vendors.'; }
+      catch (e) { $('qrMsg').textContent = text; }
+    };
+    if ($('qrMail')) $('qrMail').onclick = () => {
+      const q = procQuoteEmail(procurementSummary(), quoteFields());
+      const href = `mailto:?bcc=${encodeURIComponent(q.recipients.join(','))}&subject=${encodeURIComponent(q.subject)}&body=${encodeURIComponent(q.body)}`;
+      if (typeof window !== 'undefined') window.location.href = href;
+    };
     wizGo(0);
   }
   function initProcurement() {
@@ -3624,9 +3790,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       $('procFund').value = 'uh'; $('procAmount').value = ''; $('procType').value = 'supplies'; $('procVendor').value = 'uh'; $('procQuotes').value = '0';
       ['procContract', 'procSole', 'procUrgent'].forEach(id => { $(id).checked = false; });
       $('procNotes').value = '';
-      ['pkRequestor', 'pkDept', 'pkFund', 'pkVendor', 'pkPurpose', 'pkSoleWhy', 'pkSoleUnique', 'pkSolePrice', 'pkQuotes']
+      ['pkRequestor', 'pkDept', 'pkFund', 'pkVendor', 'pkPurpose', 'pkSoleWhy', 'pkSoleUnique', 'pkSolePrice', 'pkQuotes',
+        'qrItem', 'qrSpecs', 'qrDeadline', 'qrName', 'qrDept']
         .forEach(id => { if ($(id)) $(id).value = ''; });
       if ($('pkMsg')) $('pkMsg').textContent = '';
+      if ($('qrMsg')) $('qrMsg').textContent = '';
       $('procMsg').textContent = '';
       renderProcurement();
       if (typeof wizGo === 'function') wizGo(0);

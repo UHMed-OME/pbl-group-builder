@@ -25,7 +25,7 @@ assert.ok(XLSX && XLSX.utils, 'SheetJS failed to load');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const m = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/i);
 assert.ok(m, 'could not locate the app <script> block');
-const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, solve, defaultWeights, makeExample, resultSheets, procDecide, procPacketDocs, pdfLayout, buildPdf, TEMPLATE, SCHEMA, SHEET_ORDER };';
+const appSrc = m[1] + '\n;globalThis.__app = { validate, parseWorkbook, buildWorkbook, parsePasted, solve, defaultWeights, makeExample, resultSheets, procDecide, procPacketDocs, procQuoteEmail, pdfLayout, buildPdf, TEMPLATE, SCHEMA, SHEET_ORDER };';
 
 // 3. Minimal stubs for the DOM/browser globals referenced at load time.
 const stubEl = () => new Proxy({}, {
@@ -327,6 +327,9 @@ console.log('✓ procurement engine: UH/RCUH thresholds, routing, forms, coop co
 const dd = app.procDecide({ fund: 'rcuh', type: 'software', amount: 30000, vendor: 'uh', quotes: 0, sole: true });
 assert.ok(dd.coop && dd.coop.contacts && dd.coop.contacts.length, 'coop contract carries vendor quote contacts');
 assert.ok(dd.coop.contacts.some(c => /@/.test(c.email || '')), 'quote contacts include email addresses');
+// computer coop carries NASPO-specific vendor sites
+const cpu = app.procDecide({ fund: 'uh', type: 'computer', amount: 6000, vendor: 'uh', quotes: 0 });
+assert.ok(cpu.coop.contacts.some(c => /naspo/i.test(c.site || '') || /dellnaspovp|hp\.com\/buy|techtoday/i.test(c.site || '')), 'computer vendors carry NASPO ordering sites');
 const pdocs = app.procPacketDocs(dd, {
   date: '2026-06-10', requestor: 'Jane Doe', dept: 'OME', fundCode: 'RX123', vendor: 'Carahsoft',
   purpose: 'Survey platform license', typeLabel: 'Software, subscription, or cloud',
@@ -350,5 +353,27 @@ const freeEntryStart = pdfStr.indexOf('\n', xi + 5) + 1;     // start of the "00
 const obj1Off = parseInt(pdfStr.slice(freeEntryStart + 20, freeEntryStart + 30), 10); // next 20-byte entry = object 1
 assert.equal(pdfStr.slice(obj1Off, obj1Off + 7), '1 0 obj', 'object-1 xref offset points at object 1');
 console.log('✓ packet generator: selects the right documents and emits a valid PDF with correct offsets');
+
+// --- Test 19: quotes branch + quote-request email (one identical request to all vendors) ---
+// Needs quotes but has none → engine flags it and steers to a request, not a summary.
+const needs = app.procDecide({ fund: 'uh', type: 'computer', amount: 9000, vendor: 'uh', quotes: 0 });
+assert.equal(needs.needQuotes, true, '$9k UH purchase needs competitive quotes');
+assert.equal(needs.haveQuotes, false, 'no quotes in hand');
+assert.ok(needs.docs.some(d => /still need|request/i.test(d)), 'no-quotes path lists "you still need these", not "N attached"');
+// Has quotes → summarize instead.
+const has = app.procDecide({ fund: 'uh', type: 'computer', amount: 9000, vendor: 'uh', quotes: 3 });
+assert.ok(has.docs.some(d => /quotes attached/i.test(d)), 'quotes-in-hand path lists attached quotes');
+// Quote email: one subject/body addressed to ALL the contract's vendor emails.
+const qe = app.procQuoteEmail(needs, { item: 'Laptops', specs: '10x ThinkPad X1', deadline: '2026-06-20', requestor: 'Jane Doe', dept: 'OME' });
+assert.ok(qe.recipients.length >= 3 && qe.recipients.every(e => /@/.test(e)), 'request targets all contract vendor emails');
+assert.match(qe.subject, /Quote Request - Laptops - OME/, 'subject is built from the item + department');
+assert.ok(/reference NASPO 24-03/i.test(qe.body), 'body cites the cooperative contract number');
+assert.ok(/15 business days/.test(qe.body), 'body asks for a 15-day quote validity');
+// Generating a packet with no quotes includes the Request-for-Quote doc (not a price summary).
+const reqDocs = app.procPacketDocs(needs, { cover: false, quoteReq: true, item: 'Laptops', specs: '10x ThinkPad X1', deadline: '2026-06-20', requestor: 'Jane Doe', dept: 'OME' });
+const reqPdf = Array.from(app.buildPdf(app.pdfLayout(reqDocs))).map(c => String.fromCharCode(c)).join('');
+assert.ok(reqPdf.includes('Request for Quote') && reqPdf.includes('Heather.Morgado@dell.com'), 'quote-request doc lists the identical recipients');
+assert.ok(!reqPdf.includes('Quote / Price Summary'), 'no price summary when there are no quotes');
+console.log('✓ quotes branch: no quotes → make a request (to all vendors); quotes → summarize');
 
 console.log('\nALL TESTS PASSED');
