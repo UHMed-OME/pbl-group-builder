@@ -156,6 +156,59 @@
     .proc-docpick legend { font-weight: 600; font-size: 0.85rem; color: var(--brand-dark); padding: 0 0.3rem; }
     .proc-docpick label { display: flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; }
     @media (max-width: 640px) { .proc-pgrid { grid-template-columns: 1fr; } }
+    /* ---- TurboTax-style wizard ---- */
+    .wiz { max-width: 760px; margin: 0 auto; padding: 0.5rem 0 2rem; }
+    .wiz-prog { list-style: none; display: flex; gap: 0; margin: 0 0 1.4rem; padding: 0; counter-reset: wp; }
+    .wiz-prog li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+      position: relative; font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    .wiz-prog li::before { content: ''; position: absolute; top: 14px; left: -50%; width: 100%; height: 2px; background: var(--line); z-index: 0; }
+    .wiz-prog li:first-child::before { display: none; }
+    .wiz-prog li.done::before, .wiz-prog li.active::before { background: var(--accent); }
+    .wp-num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; z-index: 1;
+      background: var(--bg); border: 2px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+    .wiz-prog li.active .wp-num { border-color: var(--accent); color: var(--accent); }
+    .wiz-prog li.done .wp-num { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .wiz-prog li.active, .wiz-prog li.done { color: var(--brand-dark); }
+    .wiz-cardwrap { border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--bg); box-shadow: var(--e1); padding: 1.6rem; min-height: 320px; }
+    .wiz-q { margin: 0 0 0.3rem; font-size: 1.3rem; color: var(--brand-dark); }
+    .wiz-sub { margin: 0 0 1.3rem; color: var(--muted); font-size: 0.95rem; }
+    .wiz-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+    .wiz-choices { display: grid; gap: 0.6rem; }
+    .wiz-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .wiz-twoup { grid-template-columns: 1fr 1fr; }
+    .wiz-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .wiz-choice { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;
+      text-align: center; padding: 0.9rem 0.7rem; border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg);
+      color: var(--fg); font: inherit; cursor: pointer; transition: border-color var(--motion), background var(--motion), box-shadow var(--motion); }
+    .wiz-choice:hover { border-color: var(--accent); background: var(--accent-bg); }
+    .wiz-choice.selected { border-color: var(--accent); background: var(--accent-bg); box-shadow: inset 0 0 0 1px var(--accent); }
+    .wiz-choice.selected::after { content: '✓'; position: absolute; top: 6px; right: 8px; color: var(--accent); font-weight: 700; font-size: 0.8rem; }
+    .wiz-pill.selected::after { content: none; }
+    .wc-emoji { font-size: 1.6rem; line-height: 1; }
+    .wc-label { font-weight: 600; font-size: 0.9rem; }
+    .wc-desc { font-size: 0.78rem; color: var(--muted); font-weight: 400; }
+    .wiz-choice-lg { padding: 1.3rem 1rem; gap: 0.5rem; }
+    .wiz-pill { flex-direction: row; padding: 0.55rem 1.1rem; border-radius: 999px; font-size: 0.9rem; }
+    .wiz-amount { display: block; margin-top: 1.4rem; font-weight: 600; font-size: 0.95rem; color: var(--brand-dark); }
+    .wiz-amount-in { display: flex; align-items: center; margin-top: 0.4rem; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; max-width: 280px; }
+    .wiz-amount-in:focus-within { border-color: var(--accent); }
+    .wiz-dollar { padding: 0 0.3rem 0 0.8rem; font-size: 1.4rem; color: var(--muted); }
+    .wiz-amount-in input { border: 0; outline: 0; font: inherit; font-size: 1.4rem; padding: 0.5rem 0.7rem 0.5rem 0.2rem; width: 100%; background: transparent; color: var(--fg); }
+    .wiz-fieldgroup { margin-bottom: 1.3rem; }
+    .wiz-flabel { display: block; font-weight: 600; font-size: 0.95rem; color: var(--brand-dark); margin-bottom: 0.5rem; }
+    .wiz-toggles { display: grid; gap: 0.5rem; }
+    .wiz-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.8rem; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 0.92rem; }
+    .wiz-toggle:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); }
+    .wiz-toggle input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+    .wiz-nav { display: flex; align-items: center; gap: 0.6rem; margin-top: 1.2rem; }
+    .wiz-navspace { flex: 1; }
+    .wiz-btn { font: inherit; padding: 0.6rem 1.3rem; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; font-weight: 600; }
+    .wiz-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .wiz-btn.primary:hover { filter: brightness(1.08); }
+    .wiz-btn.ghost:hover { background: var(--accent-bg); }
+    .wiz-btn.linkish { border: 0; background: transparent; color: var(--muted); font-weight: 500; text-decoration: underline; padding: 0.6rem 0.5rem; }
+    .wiz-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    @media (max-width: 560px) { .wiz-cardwrap { padding: 1.1rem; } .wiz-twoup { grid-template-columns: 1fr; } .wp-txt { display: none; } }
     @media (max-width: 900px) { .proc-grid { grid-template-columns: 1fr; } }
     /* Transport lives on the right of the Roster/Groups tab row. */
     .apptabs .tool-actions { margin-left: auto; }
@@ -725,98 +778,138 @@
           </div>
         </header>
 
-        <main class="tool-empty">
-          <div class="proc-grid">
-            <section class="proc-panel" aria-labelledby="procInputTitle">
-              <h2 id="procInputTitle">Request details</h2>
-              <div class="proc-body">
-                <label class="proc-field">Funding source
-                  <select id="procFund">
-                    <option value="uh">UH / State funds</option>
-                    <option value="rcuh">RCUH (extramural / grant)</option>
-                  </select>
-                </label>
-                <label class="proc-field">Estimated total
-                  <input id="procAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
-                </label>
-                <label class="proc-field">Purchase type
-                  <select id="procType">
-                    <option value="supplies">Supplies or materials</option>
-                    <option value="computer">Computer / IT hardware</option>
-                    <option value="software">Software, subscription, or cloud</option>
-                    <option value="lab">Lab / research supplies</option>
-                    <option value="medical">Medical / clinical products</option>
-                    <option value="office">Office supplies / furniture</option>
-                    <option value="av">AV equipment</option>
-                    <option value="services">Services or consulting</option>
-                    <option value="construction">Construction / facilities</option>
-                    <option value="travel">Travel or registration</option>
-                    <option value="food">Food or event expense</option>
-                  </select>
-                </label>
-                <label class="proc-field">Vendor status
-                  <select id="procVendor">
-                    <option value="uh">UH vendor or existing supplier</option>
-                    <option value="new">New vendor</option>
-                    <option value="unknown">Not sure yet</option>
-                  </select>
-                </label>
-                <label class="proc-field">Quotes in hand
-                  <select id="procQuotes">
-                    <option value="0">None yet</option>
-                    <option value="1">1 quote</option>
-                    <option value="2">2 quotes</option>
-                    <option value="3">3 or more quotes</option>
-                  </select>
-                </label>
-                <div class="proc-checks" aria-label="Special conditions">
-                  <label><input id="procContract" type="checkbox"> Existing contract, price list, or approved agreement</label>
-                  <label><input id="procSole" type="checkbox"> Only one practical source</label>
-                  <label><input id="procUrgent" type="checkbox"> Needed urgently</label>
-                </div>
-                <label class="proc-field">Notes for the request
-                  <textarea id="procNotes" placeholder="Purpose, funding source, deadline, delivery location, or other context"></textarea>
-                </label>
+        <main class="wiz">
+          <!-- Progress stepper -->
+          <ol class="wiz-prog" id="wizProg" aria-label="Steps">
+            <li data-step="0"><span class="wp-num">1</span><span class="wp-txt">What</span></li>
+            <li data-step="1"><span class="wp-num">2</span><span class="wp-txt">Funding</span></li>
+            <li data-step="2"><span class="wp-num">3</span><span class="wp-txt">Details</span></li>
+            <li data-step="3"><span class="wp-num">4</span><span class="wp-txt">Your plan</span></li>
+            <li data-step="4"><span class="wp-num">5</span><span class="wp-txt">Packet</span></li>
+          </ol>
+
+          <div class="wiz-cardwrap">
+            <!-- Step 1 — what are you buying -->
+            <section class="wiz-step" data-step="0">
+              <h2 class="wiz-q">What are you buying?</h2>
+              <p class="wiz-sub">Pick the closest category — it helps us find the right contract, forms, and routing.</p>
+              <div class="wiz-choices wiz-grid" data-target="procType" role="radiogroup" aria-label="Purchase type">
+                <button type="button" class="wiz-choice" data-value="supplies"><span class="wc-emoji">📦</span><span class="wc-label">Supplies or materials</span></button>
+                <button type="button" class="wiz-choice" data-value="computer"><span class="wc-emoji">💻</span><span class="wc-label">Computer / IT hardware</span></button>
+                <button type="button" class="wiz-choice" data-value="software"><span class="wc-emoji">☁️</span><span class="wc-label">Software / subscription / cloud</span></button>
+                <button type="button" class="wiz-choice" data-value="lab"><span class="wc-emoji">🔬</span><span class="wc-label">Lab / research supplies</span></button>
+                <button type="button" class="wiz-choice" data-value="medical"><span class="wc-emoji">🩺</span><span class="wc-label">Medical / clinical products</span></button>
+                <button type="button" class="wiz-choice" data-value="office"><span class="wc-emoji">🗂️</span><span class="wc-label">Office supplies / furniture</span></button>
+                <button type="button" class="wiz-choice" data-value="av"><span class="wc-emoji">🎥</span><span class="wc-label">AV equipment</span></button>
+                <button type="button" class="wiz-choice" data-value="services"><span class="wc-emoji">🧰</span><span class="wc-label">Services or consulting</span></button>
+                <button type="button" class="wiz-choice" data-value="construction"><span class="wc-emoji">🏗️</span><span class="wc-label">Construction / facilities</span></button>
+                <button type="button" class="wiz-choice" data-value="travel"><span class="wc-emoji">✈️</span><span class="wc-label">Travel or registration</span></button>
+                <button type="button" class="wiz-choice" data-value="food"><span class="wc-emoji">🍽️</span><span class="wc-label">Food or event expense</span></button>
               </div>
+              <select id="procType" class="wiz-hidden" tabindex="-1" aria-hidden="true">
+                <option value="supplies">Supplies or materials</option>
+                <option value="computer">Computer / IT hardware</option>
+                <option value="software">Software, subscription, or cloud</option>
+                <option value="lab">Lab / research supplies</option>
+                <option value="medical">Medical / clinical products</option>
+                <option value="office">Office supplies / furniture</option>
+                <option value="av">AV equipment</option>
+                <option value="services">Services or consulting</option>
+                <option value="construction">Construction / facilities</option>
+                <option value="travel">Travel or registration</option>
+                <option value="food">Food or event expense</option>
+              </select>
             </section>
 
-            <section class="proc-panel" aria-labelledby="procResultTitle">
-              <h2 id="procResultTitle">Recommended next step</h2>
-              <div class="proc-body proc-result">
+            <!-- Step 2 — funding + amount -->
+            <section class="wiz-step" data-step="1" hidden>
+              <h2 class="wiz-q">How is it funded, and roughly how much?</h2>
+              <p class="wiz-sub">The funding source and dollar amount decide the rules you have to follow.</p>
+              <div class="wiz-choices wiz-twoup" data-target="procFund" role="radiogroup" aria-label="Funding source">
+                <button type="button" class="wiz-choice wiz-choice-lg" data-value="uh"><span class="wc-emoji">🏛️</span><span class="wc-label">UH / State funds</span><span class="wc-desc">General, tuition, or state-appropriated</span></button>
+                <button type="button" class="wiz-choice wiz-choice-lg" data-value="rcuh"><span class="wc-emoji">🔬</span><span class="wc-label">RCUH (grant)</span><span class="wc-desc">Extramural / grant funds via RCUH</span></button>
+              </div>
+              <select id="procFund" class="wiz-hidden" tabindex="-1" aria-hidden="true">
+                <option value="uh">UH / State funds</option>
+                <option value="rcuh">RCUH (extramural / grant)</option>
+              </select>
+              <label class="wiz-amount">Estimated total
+                <span class="wiz-amount-in"><span class="wiz-dollar">$</span><input id="procAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+              </label>
+            </section>
+
+            <!-- Step 3 — details -->
+            <section class="wiz-step" data-step="2" hidden>
+              <h2 class="wiz-q">A few quick details</h2>
+              <p class="wiz-sub">These fine-tune the forms and competition steps. Skip anything you're unsure about.</p>
+              <div class="wiz-fieldgroup">
+                <span class="wiz-flabel">Is this a new vendor?</span>
+                <div class="wiz-choices wiz-row" data-target="procVendor" role="radiogroup" aria-label="Vendor status">
+                  <button type="button" class="wiz-choice wiz-pill" data-value="uh">Existing / UH vendor</button>
+                  <button type="button" class="wiz-choice wiz-pill" data-value="new">New vendor</button>
+                  <button type="button" class="wiz-choice wiz-pill" data-value="unknown">Not sure yet</button>
+                </div>
+              </div>
+              <div class="wiz-fieldgroup">
+                <span class="wiz-flabel">How many quotes do you have?</span>
+                <div class="wiz-choices wiz-row" data-target="procQuotes" role="radiogroup" aria-label="Quotes in hand">
+                  <button type="button" class="wiz-choice wiz-pill" data-value="0">None yet</button>
+                  <button type="button" class="wiz-choice wiz-pill" data-value="1">1</button>
+                  <button type="button" class="wiz-choice wiz-pill" data-value="2">2</button>
+                  <button type="button" class="wiz-choice wiz-pill" data-value="3">3 or more</button>
+                </div>
+                <select id="procQuotes" class="wiz-hidden" tabindex="-1" aria-hidden="true">
+                  <option value="0">None yet</option><option value="1">1 quote</option><option value="2">2 quotes</option><option value="3">3 or more quotes</option>
+                </select>
+              </div>
+              <select id="procVendor" class="wiz-hidden" tabindex="-1" aria-hidden="true">
+                <option value="uh">UH vendor or existing supplier</option>
+                <option value="new">New vendor</option>
+                <option value="unknown">Not sure yet</option>
+              </select>
+              <div class="wiz-fieldgroup">
+                <span class="wiz-flabel">Any of these apply?</span>
+                <div class="wiz-toggles">
+                  <label class="wiz-toggle"><input id="procContract" type="checkbox"> <span>I already have a contract, price list, or agreement</span></label>
+                  <label class="wiz-toggle"><input id="procSole" type="checkbox"> <span>Only one vendor can provide this (sole source)</span></label>
+                  <label class="wiz-toggle"><input id="procUrgent" type="checkbox"> <span>It's urgent / time-sensitive</span></label>
+                </div>
+              </div>
+              <label class="proc-field">Anything else to note? <span class="muted">(optional)</span>
+                <textarea id="procNotes" placeholder="Deadline, delivery location, project, or other context"></textarea>
+              </label>
+            </section>
+
+            <!-- Step 4 — the plan (engine output) -->
+            <section class="wiz-step" data-step="3" hidden>
+              <h2 class="wiz-q">Here's your purchasing path</h2>
+              <p class="wiz-sub">Based on what you told us. Final approval still follows UH / JABSOM / RCUH review.</p>
+              <div class="proc-result">
                 <div id="procRoute" class="proc-route">
-                  <b>Enter a total to begin.</b>
-                  <span class="hint">This helper drafts the path, forms, and routing; final approval still follows UH / JABSOM / RCUH review.</span>
+                  <b>Tell us the details and we'll map your path.</b>
+                  <span class="hint">Go back and fill in what you're buying.</span>
                 </div>
                 <div id="procRouteTo" class="proc-block"></div>
                 <div id="procCoop" class="proc-block proc-coop"></div>
                 <div id="procGates" class="proc-block proc-gates"></div>
                 <div id="procForms" class="proc-block"></div>
-                <div>
-                  <b>Document checklist</b>
-                  <ul id="procDocs" class="proc-list">
-                    <li>Business purpose</li>
-                    <li>Estimated total</li>
-                  </ul>
+                <div><b>Document checklist</b>
+                  <ul id="procDocs" class="proc-list"><li>Business purpose</li><li>Estimated total</li></ul>
                 </div>
-                <div>
-                  <b>Submission notes</b>
-                  <ul id="procSteps" class="proc-list">
-                    <li>Complete the request details.</li>
-                  </ul>
+                <div><b>Good-to-know</b>
+                  <ul id="procSteps" class="proc-list"><li>Complete the earlier steps.</li></ul>
                 </div>
                 <div class="proc-actions">
                   <button id="procCopy">Copy summary</button>
-                  <button id="procReset">Reset</button>
                 </div>
                 <p id="procMsg" class="hint" aria-live="polite"></p>
               </div>
             </section>
-          </div>
 
-          <section class="proc-panel proc-packet" aria-labelledby="procPacketTitle">
-            <h2 id="procPacketTitle">Generate submission packet (PDF)</h2>
-            <div class="proc-body">
-              <p class="hint">Fill these in to produce a ready-to-submit PDF — a cover sheet plus the forms your request needs. Stays on your machine; nothing is uploaded.</p>
+            <!-- Step 5 — packet -->
+            <section class="wiz-step" data-step="4" hidden>
+              <h2 class="wiz-q">Let's build your packet</h2>
+              <p class="wiz-sub">Fill these in to generate a ready-to-submit PDF — a cover sheet plus the forms your request needs. Everything stays on your machine.</p>
               <div class="proc-pgrid">
                 <label class="proc-field">Requestor name <input id="pkRequestor" type="text"></label>
                 <label class="proc-field">Department / program <input id="pkDept" type="text"></label>
@@ -851,8 +944,16 @@
                 <button id="pkGenerate" class="primary">⬇ Download packet (PDF)</button>
               </div>
               <p id="pkMsg" class="hint" aria-live="polite"></p>
-            </div>
-          </section>
+            </section>
+          </div>
+
+          <!-- Navigation -->
+          <div class="wiz-nav">
+            <button id="wizBack" class="wiz-btn ghost">← Back</button>
+            <span class="wiz-navspace"></span>
+            <button id="procReset" class="wiz-btn linkish">Start over</button>
+            <button id="wizNext" class="wiz-btn primary">Continue →</button>
+          </div>
         </main>
       </section>
       <!-- Future tools mount here as additional .tool-panel sections (hidden until selected). -->
@@ -3411,6 +3512,48 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
     $('pkMsg').textContent = `Packet generated — ${docs.length} document${docs.length > 1 ? 's' : ''} (check your downloads).`;
   }
+  // ---- Wizard step navigation (TurboTax-style) -----------------------------
+  let wizStep = 0;
+  const WIZ_LAST = 4;
+  function wizSyncChoices() {
+    document.querySelectorAll('.wiz-choices').forEach(group => {
+      const sel = $(group.getAttribute('data-target'));
+      const val = sel ? sel.value : '';
+      group.querySelectorAll('.wiz-choice').forEach(c => c.classList.toggle('selected', c.getAttribute('data-value') === val));
+    });
+  }
+  function wizRender() {
+    document.querySelectorAll('#tool-proc .wiz-step').forEach(s => { s.hidden = Number(s.getAttribute('data-step')) !== wizStep; });
+    document.querySelectorAll('#wizProg li').forEach(li => {
+      const n = Number(li.getAttribute('data-step'));
+      li.classList.toggle('active', n === wizStep);
+      li.classList.toggle('done', n < wizStep);
+    });
+    const back = $('wizBack'), next = $('wizNext');
+    back.disabled = wizStep === 0;
+    next.hidden = wizStep === WIZ_LAST;
+    next.textContent = wizStep === WIZ_LAST - 1 ? 'Build packet →' : 'Continue →';
+    if (wizStep === 3) renderProcurement();   // entering the plan step: compute it
+    wizSyncChoices();
+  }
+  function wizGo(n) { wizStep = Math.max(0, Math.min(WIZ_LAST, n)); wizRender(); }
+  function initWizard() {
+    if (!$('wizNext')) return;
+    // Choice cards drive the (hidden) selects so the engine stays unchanged.
+    document.querySelectorAll('.wiz-choices').forEach(group => {
+      group.addEventListener('click', e => {
+        const btn = e.target.closest('.wiz-choice'); if (!btn) return;
+        const sel = $(group.getAttribute('data-target')); if (!sel) return;
+        sel.value = btn.getAttribute('data-value');
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        wizSyncChoices();
+        if (group.getAttribute('data-target') === 'procType') wizGo(wizStep + 1); // single-choice step auto-advances
+      });
+    });
+    $('wizNext').onclick = () => wizGo(wizStep + 1);
+    $('wizBack').onclick = () => wizGo(wizStep - 1);
+    wizGo(0);
+  }
   function initProcurement() {
     ['procFund', 'procAmount', 'procType', 'procVendor', 'procQuotes', 'procContract', 'procSole', 'procUrgent', 'procNotes']
       .forEach(id => $(id).addEventListener('input', renderProcurement));
@@ -3427,12 +3570,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     $('procReset').onclick = () => {
       $('procFund').value = 'uh'; $('procAmount').value = ''; $('procType').value = 'supplies'; $('procVendor').value = 'uh'; $('procQuotes').value = '0';
       ['procContract', 'procSole', 'procUrgent'].forEach(id => { $(id).checked = false; });
-      $('procNotes').value = ''; $('procMsg').textContent = '';
+      $('procNotes').value = '';
+      ['pkRequestor', 'pkDept', 'pkFund', 'pkVendor', 'pkPurpose', 'pkSoleWhy', 'pkSoleUnique', 'pkSolePrice', 'pkQuotes']
+        .forEach(id => { if ($(id)) $(id).value = ''; });
+      if ($('pkMsg')) $('pkMsg').textContent = '';
+      $('procMsg').textContent = '';
       renderProcurement();
+      if (typeof wizGo === 'function') wizGo(0);
     };
     renderProcurement();
   }
-  if (typeof document !== 'undefined' && document.body) initProcurement();
+  if (typeof document !== 'undefined' && document.body) { initProcurement(); initWizard(); }
 
   // Warn before leaving with unsaved edits / an unexported solve. (Guarded for the
   // headless test, which has no window.)
